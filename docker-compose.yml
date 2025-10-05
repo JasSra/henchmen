@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  controller:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8080
+      - DATABASE_PATH=/app/data/deploybot.db
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-your-webhook-secret-here}
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

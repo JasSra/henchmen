@@ -1,0 +1,2484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeployBot Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --azure-blue: #0078d4;
+            --azure-blue-hover: #106ebe;
+            --azure-blue-light: #e1f5fe;
+            --azure-gray-50: #faf9f8;
+            --azure-gray-100: #f3f2f1;
+            --azure-gray-200: #edebe9;
+            --azure-gray-300: #e1dfdd;
+            --azure-gray-400: #d2d0ce;
+            --azure-gray-500: #8a8886;
+            --azure-gray-600: #605e5c;
+            --azure-gray-700: #323130;
+            --azure-success: #107c10;
+            --azure-warning: #ffb900;
+            --azure-error: #d13438;
+            --azure-info: #00bcf2;
+            --azure-purple: #5c2d91;
+        }
+
+        body {
+            font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+            background: var(--azure-gray-50);
+            color: var(--azure-gray-700);
+            line-height: 1.5;
+        }
+
+        /* Top Navigation Bar */
+        .top-nav {
+            background: white;
+            border-bottom: 1px solid var(--azure-gray-200);
+            height: 48px;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            color: var(--azure-gray-700);
+            font-size: 15px;
+        }
+
+        .nav-brand-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--azure-blue);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .nav-items {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+            align-items: center;
+        }
+
+        .nav-button {
+            background: transparent;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--azure-gray-600);
+            font-size: 13px;
+            font-weight: 400;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-button:hover {
+            background: var(--azure-gray-100);
+            color: var(--azure-gray-700);
+        }
+
+        .nav-button.primary {
+            background: var(--azure-blue);
+            color: white;
+        }
+
+        .nav-button.primary:hover {
+            background: var(--azure-blue-hover);
+        }
+
+        .ai-status-badge {
+            background: var(--azure-success);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ai-status-dot {
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Container with Sidebar */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px;
+            display: flex;
+            gap: 24px;
+        }
+
+        .main-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .workflow-sidebar {
+            width: 320px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 80px;
+            height: fit-content;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+
+        .workflow-sidebar.hidden {
+            display: none;
+        }
+
+        .workflow-panel {
+            background: white;
+            border: 1px solid var(--azure-gray-300);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .workflow-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--azure-gray-300);
+            background: var(--azure-gray-50);
+        }
+
+        .workflow-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--azure-gray-700);
+            margin-bottom: 4px;
+        }
+
+        .workflow-description {
+            font-size: 12px;
+            color: var(--azure-gray-500);
+        }
+
+        .workflow-steps {
+            padding: 12px;
+        }
+
+        .workflow-step {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border: 1px solid var(--azure-gray-300);
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .workflow-step.pending {
+            background: var(--azure-gray-50);
+            border-color: var(--azure-gray-300);
+        }
+
+        .workflow-step.in-progress {
+            background: #e3f2fd;
+            border-color: var(--azure-blue);
+            box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+        }
+
+        .workflow-step.completed {
+            background: #e8f5e9;
+            border-color: #4caf50;
+        }
+
+        .workflow-step.failed {
+            background: #ffebee;
+            border-color: #f44336;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .step-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .step-icon.pending {
+            background: var(--azure-gray-300);
+            color: white;
+        }
+
+        .step-icon.in-progress {
+            background: var(--azure-blue);
+            color: white;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .step-icon.completed {
+            background: #4caf50;
+            color: white;
+        }
+
+        .step-icon.failed {
+            background: #f44336;
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .step-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--azure-gray-700);
+            flex: 1;
+        }
+
+        .step-description {
+            font-size: 12px;
+            color: var(--azure-gray-500);
+            margin-left: 28px;
+        }
+
+        .workflow-actions {
+            padding: 12px 16px;
+            border-top: 1px solid var(--azure-gray-300);
+            display: flex;
+            gap: 8px;
+        }
+
+        .workflow-btn {
+            flex: 1;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+
+        .workflow-btn-approve {
+            background: var(--azure-blue);
+            color: white;
+        }
+
+        .workflow-btn-approve:hover {
+            background: #005a9e;
+        }
+
+        .workflow-btn-reject {
+            background: var(--azure-gray-200);
+            color: var(--azure-gray-700);
+        }
+
+        .workflow-btn-reject:hover {
+            background: var(--azure-gray-300);
+        }
+
+        .workflow-btn-cancel {
+            background: #f44336;
+            color: white;
+        }
+
+        .workflow-btn-cancel:hover {
+            background: #d32f2f;
+        }
+
+        .workflow-selector {
+            padding: 16px;
+            border-bottom: 1px solid var(--azure-gray-300);
+        }
+
+        .workflow-select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--azure-gray-300);
+            border-radius: 4px;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .workflow-start-btn {
+            width: 100%;
+            padding: 10px;
+            background: var(--azure-blue);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .workflow-start-btn:hover {
+            background: #005a9e;
+        }
+
+        /* Page Header */
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--azure-gray-700);
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 13px;
+            color: var(--azure-gray-500);
+        }
+
+        /* Quick Actions Bar */
+        .quick-actions {
+            background: white;
+            border: 1px solid var(--azure-gray-200);
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .quick-actions-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--azure-gray-600);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .quick-action-btn {
+            background: var(--azure-gray-50);
+            border: 1px solid var(--azure-gray-300);
+            padding: 12px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--azure-gray-700);
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quick-action-btn:hover {
+            background: var(--azure-gray-100);
+            border-color: var(--azure-blue);
+            color: var(--azure-blue);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .grid-full {
+            grid-column: 1 / -1;
+        }
+
+        /* Card Component */
+        .card {
+            background: white;
+            border: 1px solid var(--azure-gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--azure-gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--azure-gray-700);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid var(--azure-gray-200);
+            border-radius: 4px;
+            padding: 20px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--azure-blue);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--azure-gray-500);
+            font-weight: 500;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-change.positive {
+            color: var(--azure-success);
+        }
+
+        .stat-change.negative {
+            color: var(--azure-error);
+        }
+
+        /* List Items */
+        .list-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--azure-gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.15s;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item:hover {
+            background: var(--azure-gray-50);
+        }
+
+        .list-item-content {
+            flex: 1;
+        }
+
+        .list-item-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--azure-gray-700);
+            margin-bottom: 4px;
+        }
+
+        .list-item-meta {
+            font-size: 12px;
+            color: var(--azure-gray-500);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            gap: 6px;
+        }
+
+        .badge-success {
+            background: #dff6dd;
+            color: var(--azure-success);
+        }
+
+        .badge-running {
+            background: var(--azure-blue-light);
+            color: var(--azure-blue);
+        }
+
+        .badge-pending {
+            background: #fff4ce;
+            color: #ca5010;
+        }
+
+        .badge-failed {
+            background: #fde7e9;
+            color: var(--azure-error);
+        }
+
+        .badge-warning {
+            background: #fff4ce;
+            color: var(--azure-warning);
+        }
+
+        .badge-info {
+            background: #cff4fc;
+            color: #0078d4;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--azure-gray-500);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        .empty-state-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--azure-gray-600);
+        }
+
+        .empty-state-text {
+            font-size: 13px;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--azure-gray-700);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--azure-gray-400);
+            border-radius: 2px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--azure-blue);
+            box-shadow: 0 0 0 1px var(--azure-blue);
+        }
+
+        /* Buttons */
+        .button {
+            background: var(--azure-blue);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 2px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .button:hover {
+            background: var(--azure-blue-hover);
+        }
+
+        .button:active {
+            transform: scale(0.98);
+        }
+
+        .button-secondary {
+            background: white;
+            color: var(--azure-gray-700);
+            border: 1px solid var(--azure-gray-400);
+        }
+
+        .button-secondary:hover {
+            background: var(--azure-gray-50);
+        }
+
+        .button-small {
+            padding: 4px 12px;
+            font-size: 13px;
+        }
+
+        .button-full {
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* AI Chat Widget */
+        .ai-chat-fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            background: var(--azure-blue);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,120,212,0.4);
+            transition: all 0.3s;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-chat-fab:hover {
+            background: var(--azure-blue-hover);
+            transform: scale(1.1);
+        }
+
+        .ai-chat-widget {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 420px;
+            height: 600px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+            border: 1px solid var(--azure-gray-200);
+        }
+
+        .ai-chat-widget.open {
+            display: flex;
+        }
+
+        .ai-chat-header {
+            background: var(--azure-blue);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-chat-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-chat-close {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            font-size: 18px;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .ai-chat-close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .ai-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: var(--azure-gray-50);
+        }
+
+        .ai-message {
+            padding: 10px 14px;
+            border-radius: 6px;
+            max-width: 85%;
+            animation: slideIn 0.2s ease;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ai-message.user {
+            background: var(--azure-blue);
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .ai-message.assistant {
+            background: white;
+            color: var(--azure-gray-700);
+            align-self: flex-start;
+            border: 1px solid var(--azure-gray-200);
+        }
+
+        .ai-message.system {
+            background: var(--azure-blue-light);
+            color: var(--azure-blue);
+            align-self: center;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .ai-typing {
+            display: flex;
+            gap: 4px;
+            padding: 10px 14px;
+            background: white;
+            border-radius: 6px;
+            width: fit-content;
+            border: 1px solid var(--azure-gray-200);
+        }
+
+        .ai-typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--azure-gray-400);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .ai-typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .ai-typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        .ai-chat-input-container {
+            padding: 16px;
+            border-top: 1px solid var(--azure-gray-200);
+            display: flex;
+            gap: 8px;
+            background: white;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .ai-chat-input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--azure-gray-400);
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .ai-chat-input:focus {
+            outline: none;
+            border-color: var(--azure-blue);
+        }
+
+        .ai-send-btn {
+            background: var(--azure-blue);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ai-send-btn:hover {
+            background: var(--azure-blue-hover);
+        }
+
+        .ai-voice-btn {
+            background: white;
+            color: var(--azure-error);
+            border: 1px solid var(--azure-gray-400);
+            border-radius: 4px;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ai-voice-btn:hover {
+            background: var(--azure-gray-50);
+            border-color: var(--azure-error);
+        }
+
+        .ai-voice-btn.recording {
+            background: var(--azure-error);
+            color: white;
+            animation: pulse-recording 1.5s infinite;
+        }
+
+        @keyframes pulse-recording {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Suggestion Buttons */
+        .ai-suggestions {
+            padding: 12px 16px;
+            border-top: 1px solid var(--azure-gray-200);
+            background: var(--azure-gray-50);
+            display: none;
+        }
+
+        .ai-suggestions.show {
+            display: block;
+        }
+
+        .ai-suggestions-title {
+            font-size: 11px;
+            color: var(--azure-gray-500);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .ai-suggestions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .ai-suggestion-btn {
+            background: white;
+            border: 1px solid var(--azure-gray-300);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--azure-gray-700);
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: left;
+        }
+
+        .ai-suggestion-btn:hover {
+            background: var(--azure-blue-light);
+            border-color: var(--azure-blue);
+            color: var(--azure-blue);
+        }
+
+        /* Input Prompt Box */
+        .ai-input-prompt {
+            padding: 12px 16px;
+            background: var(--azure-blue-light);
+            border-top: 1px solid var(--azure-blue);
+            display: none;
+            font-size: 13px;
+            color: var(--azure-blue);
+        }
+
+        .ai-input-prompt.show {
+            display: block;
+        }
+
+        /* Workflow Cards in Chat */
+        .workflow-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 12px 0;
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .workflow-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .workflow-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .workflow-card-icon {
+            font-size: 32px;
+        }
+
+        .workflow-card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .workflow-card-description {
+            font-size: 14px;
+            opacity: 0.95;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .workflow-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .workflow-card-steps {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .workflow-card-cta {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .workflow-card-cta:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .workflow-card.register {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .workflow-card.deploy {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .workflow-card.troubleshoot {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .workflow-card.health {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .workflow-progress {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+        }
+
+        .workflow-progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .workflow-progress-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--azure-gray-700);
+        }
+
+        .workflow-progress-badge {
+            background: var(--azure-blue);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .workflow-progress-bar {
+            background: var(--azure-gray-200);
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .workflow-progress-fill {
+            background: var(--azure-blue);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        /* Quick Action Buttons */
+        .quick-actions-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .quick-action-btn {
+            background: linear-gradient(135deg, var(--azure-blue) 0%, #0055aa 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .quick-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 120, 212, 0.3);
+        }
+
+        .quick-action-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .quick-action-btn.secondary {
+            background: linear-gradient(135deg, var(--azure-gray-500) 0%, var(--azure-gray-600) 100%);
+        }
+
+        .quick-action-btn.secondary:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .quick-action-btn.danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+
+        .quick-action-btn.danger:hover {
+            box-shadow: 0 4px 8px rgba(238, 90, 111, 0.3);
+        }
+
+        .quick-action-btn.success {
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+        }
+
+        .quick-action-btn.success:hover {
+            box-shadow: 0 4px 8px rgba(55, 178, 77, 0.3);
+        }
+
+        /* AI Insights Panel */
+        .insights-panel {
+            background: white;
+            border: 1px solid var(--azure-gray-200);
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .insights-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--azure-gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .insights-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--azure-gray-700);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .insights-body {
+            padding: 16px 20px;
+        }
+
+        .insight-item {
+            padding: 12px;
+            border-left: 3px solid;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .insight-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .insight-item.info {
+            background: var(--azure-blue-light);
+            border-color: var(--azure-info);
+            color: var(--azure-gray-700);
+        }
+
+        .insight-item.warning {
+            background: #fff4ce;
+            border-color: var(--azure-warning);
+            color: var(--azure-gray-700);
+        }
+
+        .insight-item.error {
+            background: #fde7e9;
+            border-color: var(--azure-error);
+            color: var(--azure-gray-700);
+        }
+
+        .insight-item.success {
+            background: #dff6dd;
+            border-color: var(--azure-success);
+            color: var(--azure-gray-700);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--azure-gray-100);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--azure-gray-400);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--azure-gray-500);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--azure-gray-300);
+            border-top-color: var(--azure-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .ai-chat-widget {
+                width: calc(100vw - 40px);
+                right: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <div class="nav-brand-icon">DB</div>
+            <span>DeployBot Controller</span>
+        </div>
+        <div class="nav-items">
+            <div class="ai-status-badge">
+                <span class="ai-status-dot"></span>
+                AI Assistant
+            </div>
+            <button class="nav-button" onclick="location.reload()">
+                <span>🔄</span> Refresh
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Main Content Area -->
+        <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">Monitor and manage your deployments</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-agents">0</div>
+                <div class="stat-label">Active Agents</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-jobs">0</div>
+                <div class="stat-label">Total Jobs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-running">0</div>
+                <div class="stat-label">Running</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-success">0</div>
+                <div class="stat-label">Successful</div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <div class="quick-actions-title">Quick Actions</div>
+            <div class="quick-actions-grid">
+                <button class="quick-action-btn" onclick="askAI('Check all agents status')">
+                    <span>🤖</span> Check Agents
+                </button>
+                <button class="quick-action-btn" onclick="askAI('Show running jobs')">
+                    <span>▶️</span> Running Jobs
+                </button>
+                <button class="quick-action-btn" onclick="askAI('Show recent failures')">
+                    <span>⚠️</span> Recent Failures
+                </button>
+                <button class="quick-action-btn" onclick="askAI('Show deployment stats for last 24 hours')">
+                    <span>📊</span> 24h Stats
+                </button>
+            </div>
+        </div>
+
+        <!-- AI Insights Panel -->
+        <div class="insights-panel" id="insights-panel" style="display: none;">
+            <div class="insights-header">
+                <div class="insights-title">
+                    <span>💡</span> AI Insights
+                </div>
+                <button class="button button-small button-secondary" onclick="loadInsights()">
+                    Refresh
+                </button>
+            </div>
+            <div class="insights-body" id="insights-container">
+                <div class="empty-state">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="grid">
+            <!-- Agents Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>🖥️</span> Registered Agents
+                    </div>
+                    <div class="card-actions">
+                        <button class="button button-small button-secondary" onclick="loadAgents()">
+                            <span>🔄</span> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="agents-list">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🖥️</div>
+                            <div class="empty-state-title">No agents registered</div>
+                            <div class="empty-state-text">Agents will appear here once they connect</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Jobs Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>📦</span> Recent Jobs
+                    </div>
+                    <div class="card-actions">
+                        <button class="button button-small button-secondary" onclick="loadJobs()">
+                            <span>🔄</span> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="jobs-list">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📦</div>
+                            <div class="empty-state-title">No jobs yet</div>
+                            <div class="empty-state-text">Deployment jobs will appear here</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deploy Form Card -->
+            <div class="card grid-full">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>🚀</span> Create Deployment
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="deploy-form" onsubmit="handleDeploy(event)">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+                            <div class="form-group">
+                                <label for="repo">Repository</label>
+                                <input type="text" id="repo" placeholder="org/repo" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="ref">Git Ref</label>
+                                <input type="text" id="ref" placeholder="main" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="host">Target Host</label>
+                                <input type="text" id="host" placeholder="agent-hostname" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="button button-full">
+                            <span>🚀</span> Deploy
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div><!-- Main Content End -->
+
+    <!-- Workflow Sidebar -->
+    <div class="workflow-sidebar hidden" id="workflow-sidebar">
+        <!-- Workflow Selector -->
+        <div class="workflow-panel">
+            <div class="workflow-selector">
+                <select class="workflow-select" id="workflow-type">
+                    <option value="">Select a workflow...</option>
+                    <option value="register_agent">Register New Agent</option>
+                    <option value="deploy_application">Deploy Application</option>
+                    <option value="troubleshoot_failure">Troubleshoot Failure</option>
+                    <option value="health_check">System Health Check</option>
+                </select>
+                <button class="workflow-start-btn" onclick="startSelectedWorkflow()">
+                    Start Workflow
+                </button>
+            </div>
+        </div>
+
+        <!-- Active Workflow Display -->
+        <div class="workflow-panel" id="active-workflow" style="margin-top: 16px; display: none;">
+            <div class="workflow-header">
+                <div class="workflow-title" id="workflow-name">Workflow</div>
+                <div class="workflow-description" id="workflow-desc">Description</div>
+            </div>
+            <div class="workflow-steps" id="workflow-steps">
+                <!-- Steps will be dynamically inserted here -->
+            </div>
+            <div class="workflow-actions" id="workflow-actions" style="display: none;">
+                <button class="workflow-btn workflow-btn-approve" onclick="approveCurrentStep()">
+                    ✓ Approve
+                </button>
+                <button class="workflow-btn workflow-btn-reject" onclick="rejectCurrentStep()">
+                    ✗ Reject
+                </button>
+            </div>
+            <div class="workflow-actions">
+                <button class="workflow-btn workflow-btn-cancel" onclick="cancelCurrentWorkflow()">
+                    Cancel Workflow
+                </button>
+            </div>
+        </div>
+    </div><!-- Workflow Sidebar End -->
+    </div><!-- Container End -->
+
+    <!-- AI Chat FAB -->
+    <button class="ai-chat-fab" onclick="toggleChat()" title="AI Assistant">
+        🤖
+    </button>
+
+    <!-- AI Chat Widget -->
+    <div class="ai-chat-widget" id="ai-chat-widget">
+        <div class="ai-chat-header">
+            <h3>
+                <span>🤖</span> AI Assistant
+            </h3>
+            <button class="ai-chat-close" onclick="toggleChat()">×</button>
+        </div>
+        <div class="ai-chat-messages" id="ai-messages">
+            <div class="ai-message system">
+                Welcome! I can help you manage deployments. Here are some things you can try:
+            </div>
+            <div class="ai-suggestions show">
+                <div class="ai-suggestions-title">Try these commands</div>
+                <div class="ai-suggestions-grid">
+                    <button class="ai-suggestion-btn" onclick="showWorkflowCards()">🚀 Show workflows</button>
+                    <button class="ai-suggestion-btn" onclick="askAI('Show all agents')">Show all agents</button>
+                    <button class="ai-suggestion-btn" onclick="askAI('List recent jobs')">List recent jobs</button>
+                    <button class="ai-suggestion-btn" onclick="askAI('Check system health')">Check system health</button>
+                </div>
+            </div>
+        </div>
+        <div class="ai-input-prompt" id="ai-input-prompt">
+            <!-- Dynamic input prompt will appear here -->
+        </div>
+        <div class="ai-suggestions" id="ai-suggestions-container">
+            <div class="ai-suggestions-title">Suggested actions</div>
+            <div class="ai-suggestions-grid" id="ai-suggestions-grid">
+                <!-- Dynamic suggestions will appear here -->
+            </div>
+        </div>
+        <div class="ai-chat-input-container">
+            <input 
+                type="text" 
+                class="ai-chat-input" 
+                id="ai-input" 
+                placeholder="Ask me anything..."
+                onkeypress="handleChatKeypress(event)"
+                onkeydown="handleChatKeydown(event)"
+            >
+            <button class="ai-voice-btn" id="voice-btn" onclick="toggleVoiceRecording()" title="Voice command">
+                🎤
+            </button>
+            <button class="ai-send-btn" onclick="sendMessage()" title="Send">
+                ➤
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let conversationHistory = [];
+        let messageHistory = [];
+        let historyIndex = -1;
+        let workflowDefinitions = [];
+
+        const workflowContextPrompts = {
+            hostname: 'Enter agent hostname:',
+            repository: 'Enter repository (e.g., myorg/app):',
+            ref: 'Enter ref (branch/tag/commit):'
+        };
+
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadAgents();
+            loadJobs();
+            loadInsights();
+            loadWorkflowDefinitions();
+            
+            // Auto-refresh every 5 seconds
+            setInterval(() => {
+                loadAgents();
+                loadJobs();
+            }, 5000);
+
+            // Refresh insights every 30 seconds
+            setInterval(loadInsights, 30000);
+        });
+
+        async function loadAgents() {
+            try {
+                const response = await fetch('/v1/hosts');
+                const data = await response.json();
+                
+                document.getElementById('stat-agents').textContent = data.hosts.length;
+                
+                const agentsList = document.getElementById('agents-list');
+                if (data.hosts.length === 0) {
+                    agentsList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🖥️</div>
+                            <div class="empty-state-title">No agents registered</div>
+                            <div class="empty-state-text">Agents will appear here once they connect</div>
+                        </div>
+                    `;
+                } else {
+                    agentsList.innerHTML = data.hosts.map(agent => {
+                        const lastSeen = new Date(agent.last_heartbeat);
+                        const now = new Date();
+                        const diffMinutes = Math.floor((now - lastSeen) / 60000);
+                        const isStale = diffMinutes > 5;
+                        
+                        return `
+                            <div class="list-item">
+                                <div class="list-item-content">
+                                    <div class="list-item-title">${agent.hostname}</div>
+                                    <div class="list-item-meta">
+                                        Last seen: ${diffMinutes === 0 ? 'just now' : `${diffMinutes}m ago`}
+                                    </div>
+                                </div>
+                                <span class="badge ${isStale ? 'badge-warning' : 'badge-success'}">
+                                    ${isStale ? '⚠️ Stale' : '✓ Active'}
+                                </span>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Error loading agents:', error);
+            }
+        }
+
+        async function loadJobs() {
+            try {
+                const response = await fetch('/v1/jobs');
+                const data = await response.json();
+                
+                document.getElementById('stat-jobs').textContent = data.jobs.length;
+                
+                const running = data.jobs.filter(j => j.status === 'running').length;
+                const successful = data.jobs.filter(j => j.status === 'completed').length;
+                
+                document.getElementById('stat-running').textContent = running;
+                document.getElementById('stat-success').textContent = successful;
+                
+                const jobsList = document.getElementById('jobs-list');
+                if (data.jobs.length === 0) {
+                    jobsList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📦</div>
+                            <div class="empty-state-title">No jobs yet</div>
+                            <div class="empty-state-text">Deployment jobs will appear here</div>
+                        </div>
+                    `;
+                } else {
+                    const recentJobs = data.jobs.slice(0, 10);
+                    jobsList.innerHTML = recentJobs.map(job => {
+                        const badgeClass = {
+                            'pending': 'badge-pending',
+                            'running': 'badge-running',
+                            'completed': 'badge-success',
+                            'failed': 'badge-failed'
+                        }[job.status] || 'badge-info';
+
+                        const statusIcon = {
+                            'pending': '⏳',
+                            'running': '▶️',
+                            'completed': '✓',
+                            'failed': '✗'
+                        }[job.status] || '•';
+                        
+                        return `
+                            <div class="list-item">
+                                <div class="list-item-content">
+                                    <div class="list-item-title">${job.repo} → ${job.hostname}</div>
+                                    <div class="list-item-meta">
+                                        Job #${job.id} • ${job.git_ref}
+                                    </div>
+                                </div>
+                                <span class="badge ${badgeClass}">
+                                    ${statusIcon} ${job.status}
+                                </span>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Error loading jobs:', error);
+            }
+        }
+
+        async function loadInsights() {
+            try {
+                const response = await fetch('/v1/ai/insights');
+                const data = await response.json();
+                
+                const insightsPanel = document.getElementById('insights-panel');
+                const insightsContainer = document.getElementById('insights-container');
+                
+                if (data.insights && data.insights.length > 0) {
+                    insightsPanel.style.display = 'block';
+                    insightsContainer.innerHTML = data.insights.map(insight => `
+                        <div class="insight-item ${insight.type}">
+                            ${insight.message}
+                        </div>
+                    `).join('');
+                } else {
+                    insightsPanel.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error loading insights:', error);
+            }
+        }
+
+        async function loadWorkflowDefinitions() {
+            try {
+                const response = await fetch('/v1/ai/workflows/definitions');
+                if (!response.ok) {
+                    throw new Error('Failed to load workflow definitions');
+                }
+
+                const data = await response.json();
+                workflowDefinitions = data.workflows || [];
+            } catch (error) {
+                console.error('Error loading workflow definitions:', error);
+                // Fallback to default definitions if API fails
+                workflowDefinitions = [
+                    { name: 'register_agent', description: 'Safely onboard a new deployment agent', required_context: ['hostname'] },
+                    { name: 'deploy_application', description: 'Deploy an application with validations', required_context: ['repository', 'ref'] },
+                    { name: 'troubleshoot_failure', description: 'Diagnose and remediate failed deployments', required_context: [] },
+                    { name: 'health_check', description: 'Run a system health review', required_context: [] }
+                ];
+            }
+
+            populateWorkflowSelector();
+        }
+
+        function populateWorkflowSelector() {
+            const select = document.getElementById('workflow-type');
+            if (!select) return;
+
+            const previousValue = select.value;
+            select.innerHTML = '<option value="">Select a workflow...</option>';
+
+            workflowDefinitions.forEach(def => {
+                const option = document.createElement('option');
+                option.value = def.name;
+                const label = `${formatWorkflowName(def.name)}${def.description ? ' — ' + def.description : ''}`;
+                option.textContent = label;
+                select.appendChild(option);
+            });
+
+            if (previousValue) {
+                select.value = previousValue;
+            }
+        }
+
+        function formatWorkflowName(name) {
+            return name.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+        }
+
+        async function handleDeploy(event) {
+            event.preventDefault();
+            
+            const repo = document.getElementById('repo').value;
+            const ref = document.getElementById('ref').value;
+            const host = document.getElementById('host').value;
+            
+            try {
+                const response = await fetch('/v1/deploy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repo, git_ref: ref, hostname: host })
+                });
+                
+                if (response.ok) {
+                    addChatMessage('system', `✓ Deployment job created for ${repo}@${ref} → ${host}`);
+                    document.getElementById('deploy-form').reset();
+                    setTimeout(loadJobs, 500);
+                } else {
+                    const error = await response.json();
+                    addChatMessage('system', `✗ Failed: ${error.detail || 'Unknown error'}`);
+                }
+            } catch (error) {
+                addChatMessage('system', `✗ Error: ${error.message}`);
+            }
+        }
+
+        // AI Chat Functions
+        function toggleChat() {
+            const widget = document.getElementById('ai-chat-widget');
+            const isOpening = !widget.classList.contains('open');
+            widget.classList.toggle('open');
+            
+            // Show welcome message with workflow cards on first open
+            if (isOpening) {
+                const messagesDiv = document.getElementById('ai-messages');
+                if (messagesDiv.children.length === 0) {
+                    addChatMessage('assistant', 'Hi! I\'m your DeployBot AI assistant. 🤖\n\nI can help you deploy applications, manage agents, troubleshoot issues, and more. Let\'s make DevOps simple!');
+                    setTimeout(() => showWorkflowCards(), 300);
+                }
+            }
+        }
+
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function handleChatKeydown(event) {
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (messageHistory.length > 0) {
+                    if (historyIndex < messageHistory.length - 1) {
+                        historyIndex++;
+                        document.getElementById('ai-input').value = messageHistory[historyIndex];
+                    }
+                }
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    document.getElementById('ai-input').value = messageHistory[historyIndex];
+                } else if (historyIndex === 0) {
+                    historyIndex = -1;
+                    document.getElementById('ai-input').value = '';
+                }
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('ai-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Handle special commands
+            if (message.toLowerCase() === 'show workflows' || message.toLowerCase() === 'workflows') {
+                addChatMessage('user', message);
+                addChatMessage('assistant', 'Here are the available workflows to help you:');
+                setTimeout(() => showWorkflowCards(), 100);
+                input.value = '';
+                return;
+            }
+            
+            // Add to message history for up/down arrow navigation
+            messageHistory.unshift(message);
+            if (messageHistory.length > 50) messageHistory.pop(); // Keep last 50 messages
+            historyIndex = -1;
+            
+            addChatMessage('user', message);
+            
+            // Update conversation history for context
+            conversationHistory.push({ role: 'user', content: message });
+            if (conversationHistory.length > 20) {
+                conversationHistory = conversationHistory.slice(-20); // Keep last 20 messages
+            }
+            
+            input.value = '';
+            
+            showTypingIndicator();
+            
+            try {
+                const response = await fetch('/v1/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        conversation_history: conversationHistory
+                    })
+                });
+                
+                removeTypingIndicator();
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addChatMessage('assistant', data.response, data.quick_actions);
+                    
+                    // Update conversation history with assistant response
+                    conversationHistory.push({ role: 'assistant', content: data.response });
+                    if (conversationHistory.length > 20) {
+                        conversationHistory = conversationHistory.slice(-20);
+                    }
+                    
+                    // Show suggestions if available
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        showSuggestions(data.suggestions);
+                    } else {
+                        hideSuggestions();
+                    }
+                    
+                    // Show input prompt if AI needs input
+                    if (data.needs_input && data.input_prompt) {
+                        showInputPrompt(data.input_prompt);
+                    } else {
+                        hideInputPrompt();
+                    }
+
+                    if (data.action_taken && data.data) {
+                        handleWorkflowAction(data.action_taken, data.data);
+                    }
+                    
+                    // Refresh data if AI performed actions
+                    setTimeout(() => {
+                        loadAgents();
+                        loadJobs();
+                        loadInsights();
+                    }, 500);
+                } else {
+                    const errorData = await response.json();
+                    const errorMsg = errorData.detail || 'Sorry, I encountered an error. Please try again.';
+                    addChatMessage('assistant', errorMsg);
+                    hideSuggestions();
+                    hideInputPrompt();
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                addChatMessage('assistant', 'Sorry, I could not connect to the AI service.');
+            }
+        }
+
+        function askAI(question) {
+            document.getElementById('ai-input').value = question;
+            const widget = document.getElementById('ai-chat-widget');
+            if (!widget.classList.contains('open')) {
+                toggleChat();
+            }
+            sendMessage();
+        }
+
+        function addChatMessage(role, content, quickActions = null) {
+            const messagesDiv = document.getElementById('ai-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-message ${role}`;
+            
+            // Check if content contains workflow trigger keywords and enhance display
+            if (role === 'assistant' && (content.includes('workflow') || content.includes('guide you'))) {
+                // Parse and enhance workflow references
+                messageDiv.innerHTML = enhanceWorkflowContent(content);
+            } else {
+                messageDiv.textContent = content;
+            }
+            
+            messagesDiv.appendChild(messageDiv);
+            
+            // Add quick action buttons if provided
+            if (quickActions && quickActions.length > 0) {
+                const actionsContainer = document.createElement('div');
+                actionsContainer.className = 'quick-actions-container';
+                
+                quickActions.forEach((action, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'quick-action-btn';
+                    btn.textContent = action.label;
+                    
+                    // Style buttons based on content/position
+                    if (action.label.includes('✅') || action.label.toLowerCase().includes('yes') || action.label.toLowerCase().includes('proceed')) {
+                        btn.classList.add('success');
+                    } else if (action.label.includes('❌') || action.label.toLowerCase().includes('no') || action.label.toLowerCase().includes('cancel')) {
+                        btn.classList.add('danger');
+                    } else if (index > 0) {
+                        btn.classList.add('secondary');
+                    }
+                    
+                    // Handle click - auto-send the action text
+                    btn.onclick = () => {
+                        const input = document.getElementById('ai-input');
+                        input.value = action.label;
+                        sendMessage();
+                    };
+                    
+                    actionsContainer.appendChild(btn);
+                });
+                
+                messagesDiv.appendChild(actionsContainer);
+            }
+            
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function enhanceWorkflowContent(content) {
+            // Convert plain text to HTML with better formatting
+            let html = content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>')
+                .replace(/(✅|❌|🚀|⚠️|📝|💊|🔧|📦)/g, '<span style="font-size: 1.2em;">$1</span>');
+            
+            return html;
+        }
+
+        function showWorkflowCards() {
+            const messagesDiv = document.getElementById('ai-messages');
+            
+            const workflows = [
+                {
+                    name: 'register_agent',
+                    icon: '🚀',
+                    title: 'Register New Agent',
+                    description: 'Safely onboard a new deployment agent with guided validation and connectivity checks',
+                    steps: 6,
+                    className: 'register'
+                },
+                {
+                    name: 'deploy_application',
+                    icon: '📦',
+                    title: 'Deploy Application',
+                    description: 'Deploy your application with pre-flight checks, validation, and monitoring',
+                    steps: 6,
+                    className: 'deploy'
+                },
+                {
+                    name: 'troubleshoot_failure',
+                    icon: '🔧',
+                    title: 'Troubleshoot Failure',
+                    description: 'Diagnose and remediate failed deployments with AI-powered analysis',
+                    steps: 4,
+                    className: 'troubleshoot'
+                },
+                {
+                    name: 'health_check',
+                    icon: '💊',
+                    title: 'System Health Check',
+                    description: 'Run a comprehensive health check across all agents and services',
+                    steps: 3,
+                    className: 'health'
+                }
+            ];
+            
+            const cardsContainer = document.createElement('div');
+            cardsContainer.className = 'ai-message assistant';
+            cardsContainer.innerHTML = '<div style="margin-bottom: 12px; font-weight: 500;">Choose a workflow to get started:</div>';
+            
+            workflows.forEach(workflow => {
+                const card = document.createElement('div');
+                card.className = `workflow-card ${workflow.className}`;
+                card.onclick = () => startWorkflowFromChat(workflow.name);
+                card.innerHTML = `
+                    <div class="workflow-card-header">
+                        <div class="workflow-card-icon">${workflow.icon}</div>
+                        <div class="workflow-card-title">${workflow.title}</div>
+                    </div>
+                    <div class="workflow-card-description">${workflow.description}</div>
+                    <div class="workflow-card-footer">
+                        <div class="workflow-card-steps">${workflow.steps} guided steps</div>
+                        <button class="workflow-card-cta">Start →</button>
+                    </div>
+                `;
+                cardsContainer.appendChild(card);
+            });
+            
+            messagesDiv.appendChild(cardsContainer);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function startWorkflowFromChat(workflowName) {
+            const input = document.getElementById('ai-input');
+            const friendlyNames = {
+                'register_agent': 'help me register a new agent',
+                'deploy_application': 'help me deploy an application',
+                'troubleshoot_failure': 'help me troubleshoot a failure',
+                'health_check': 'run a health check'
+            };
+            input.value = friendlyNames[workflowName] || `start ${workflowName} workflow`;
+            sendMessage();
+        }
+
+        function handleWorkflowAction(action, data) {
+            if (action === 'start_workflow' && data.workflow_id) {
+                // Show workflow started message
+                showWorkflowProgress(data);
+            }
+        }
+
+        function showWorkflowProgress(workflowData) {
+            const messagesDiv = document.getElementById('ai-messages');
+            const progressDiv = document.createElement('div');
+            progressDiv.className = 'workflow-progress';
+            progressDiv.id = `workflow-progress-${workflowData.workflow_id}`;
+            
+            const progress = workflowData.current_step ? 
+                ((workflowData.current_step.id.split('_').length / 6) * 100) : 0;
+            
+            progressDiv.innerHTML = `
+                <div class="workflow-progress-header">
+                    <div class="workflow-progress-title">Workflow in Progress</div>
+                    <div class="workflow-progress-badge">Active</div>
+                </div>
+                <div class="workflow-progress-bar">
+                    <div class="workflow-progress-fill" style="width: ${progress}%"></div>
+                </div>
+            `;
+            
+            messagesDiv.appendChild(progressDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const messagesDiv = document.getElementById('ai-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'ai-typing';
+            typingDiv.id = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="ai-typing-dot"></div>
+                <div class="ai-typing-dot"></div>
+                <div class="ai-typing-dot"></div>
+            `;
+            messagesDiv.appendChild(typingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        // Voice Recording Functions
+        async function toggleVoiceRecording() {
+            const voiceBtn = document.getElementById('voice-btn');
+            
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                voiceBtn.classList.remove('recording');
+            } else {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+                    
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        await sendVoiceMessage(audioBlob);
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+                    
+                    mediaRecorder.start();
+                    voiceBtn.classList.add('recording');
+                    addChatMessage('system', '🎤 Recording... Click again to stop');
+                } catch (error) {
+                    addChatMessage('system', '❌ Could not access microphone');
+                }
+            }
+        }
+
+        async function sendVoiceMessage(audioBlob) {
+            showTypingIndicator();
+            
+            try {
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recording.webm');
+                
+                const response = await fetch('/v1/ai/voice/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                removeTypingIndicator();
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addChatMessage('user', `🎤 ${data.transcription}`);
+                    addChatMessage('assistant', data.response);
+                    
+                    // Update conversation history
+                    conversationHistory.push({ role: 'user', content: data.transcription });
+                    conversationHistory.push({ role: 'assistant', content: data.response });
+                    if (conversationHistory.length > 20) {
+                        conversationHistory = conversationHistory.slice(-20);
+                    }
+                    
+                    setTimeout(() => {
+                        loadAgents();
+                        loadJobs();
+                        loadInsights();
+                    }, 500);
+                } else {
+                    addChatMessage('assistant', 'Sorry, I could not process the voice command.');
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                addChatMessage('assistant', 'Error processing voice input.');
+            }
+        }
+
+        // Suggestion Management
+        function showSuggestions(suggestions) {
+            const container = document.getElementById('ai-suggestions-container');
+            const grid = document.getElementById('ai-suggestions-grid');
+            
+            grid.innerHTML = suggestions.map(suggestion => `
+                <button class="ai-suggestion-btn" onclick="askAI('${suggestion.replace(/'/g, "\\'")}')">
+                    ${suggestion}
+                </button>
+            `).join('');
+            
+            container.classList.add('show');
+        }
+
+        function hideSuggestions() {
+            const container = document.getElementById('ai-suggestions-container');
+            container.classList.remove('show');
+        }
+
+        // Input Prompt Management
+        function showInputPrompt(prompt) {
+            const container = document.getElementById('ai-input-prompt');
+            container.textContent = '💡 ' + prompt;
+            container.classList.add('show');
+            
+            // Focus input
+            document.getElementById('ai-input').focus();
+        }
+
+        function hideInputPrompt() {
+            const container = document.getElementById('ai-input-prompt');
+            container.classList.remove('show');
+        }
+
+        function handleWorkflowAction(action, payload) {
+            if (!payload) return;
+
+            if (action === 'start_workflow') {
+                if (!payload.workflow_id) return;
+                currentWorkflowId = payload.workflow_id;
+                showWorkflowSidebar();
+                updateWorkflowDisplay(payload);
+
+                if (!payload.completed && !payload.failed) {
+                    if (pollInterval) clearInterval(pollInterval);
+                    pollInterval = setInterval(pollWorkflowStatus, 2000);
+                    setTimeout(pollWorkflowStatus, 0);
+                }
+            } else if (action === 'approve_workflow_step') {
+                updateWorkflowDisplay(payload);
+                if (!payload.completed && !payload.failed) {
+                    if (!pollInterval) {
+                        pollInterval = setInterval(pollWorkflowStatus, 2000);
+                    }
+                    setTimeout(pollWorkflowStatus, 0);
+                }
+            } else if (action === 'cancel_workflow') {
+                if (payload.cancelled) {
+                    hideWorkflowSidebar();
+                    stopPolling();
+                }
+            } else if (action === 'get_workflow_status') {
+                if (payload.id) {
+                    currentWorkflowId = payload.id;
+                }
+                showWorkflowSidebar();
+                updateWorkflowSteps(payload);
+                if (payload.status && !['completed', 'failed', 'cancelled'].includes(payload.status)) {
+                    if (pollInterval) clearInterval(pollInterval);
+                    pollInterval = setInterval(pollWorkflowStatus, 2000);
+                }
+            } else if (action === 'list_workflows') {
+                if (payload.workflows && payload.workflows.length === 1) {
+                    const [workflow] = payload.workflows;
+                    currentWorkflowId = workflow.id;
+                    showWorkflowSidebar();
+                    updateWorkflowSteps(workflow);
+                }
+            } else if (action === 'list_workflow_definitions') {
+                if (Array.isArray(payload.workflows)) {
+                    workflowDefinitions = payload.workflows;
+                    populateWorkflowSelector();
+                }
+            }
+        }
+
+        // ==================== WORKFLOW MANAGEMENT ====================
+        
+        let currentWorkflowId = null;
+        let pollInterval = null;
+
+        async function startSelectedWorkflow() {
+            const workflowType = document.getElementById('workflow-type').value;
+            if (!workflowType) {
+                alert('Please select a workflow');
+                return;
+            }
+
+            try {
+                // Get required context based on workflow type
+                let context = {};
+                const definition = workflowDefinitions.find(def => def.name === workflowType);
+                if (definition && Array.isArray(definition.required_context)) {
+                    for (const field of definition.required_context) {
+                        const promptMessage = workflowContextPrompts[field] || `Enter value for ${field}:`;
+                        const value = prompt(promptMessage);
+                        if (!value) {
+                            return;
+                        }
+                        context[field] = value;
+                    }
+                }
+
+                const response = await fetch(`/v1/ai/workflows/start?workflow_name=${workflowType}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(context)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentWorkflowId = data.workflow_id;
+                    showWorkflowSidebar();
+                    updateWorkflowDisplay(data);
+                    
+                    // Start polling for updates
+                    if (!data.completed && !data.failed) {
+                        if (pollInterval) clearInterval(pollInterval);
+                        pollInterval = setInterval(pollWorkflowStatus, 2000);
+                        setTimeout(pollWorkflowStatus, 0);
+                    }
+                }
+            } catch (error) {
+                console.error('Error starting workflow:', error);
+                alert('Failed to start workflow');
+            }
+        }
+
+        async function approveCurrentStep() {
+            if (!currentWorkflowId) return;
+
+            try {
+                const response = await fetch(`/v1/ai/workflows/${currentWorkflowId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ approved: true })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    updateWorkflowDisplay(data);
+                }
+            } catch (error) {
+                console.error('Error approving step:', error);
+            }
+        }
+
+        async function rejectCurrentStep() {
+            if (!currentWorkflowId) return;
+
+            if (confirm('Are you sure you want to reject this step? The workflow will be cancelled.')) {
+                try {
+                    const response = await fetch(`/v1/ai/workflows/${currentWorkflowId}/approve`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ approved: false })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        updateWorkflowDisplay(data);
+                        stopPolling();
+                    }
+                } catch (error) {
+                    console.error('Error rejecting step:', error);
+                }
+            }
+        }
+
+        async function cancelCurrentWorkflow() {
+            if (!currentWorkflowId) return;
+
+            if (confirm('Are you sure you want to cancel this workflow?')) {
+                try {
+                    await fetch(`/v1/ai/workflows/${currentWorkflowId}/cancel`, {
+                        method: 'POST'
+                    });
+
+                    hideWorkflowSidebar();
+                    stopPolling();
+                } catch (error) {
+                    console.error('Error cancelling workflow:', error);
+                }
+            }
+        }
+
+        async function pollWorkflowStatus() {
+            if (!currentWorkflowId) {
+                stopPolling();
+                return;
+            }
+
+            try {
+                const response = await fetch(`/v1/ai/workflows/${currentWorkflowId}`);
+                if (response.ok) {
+                    const workflow = await response.json();
+                    updateWorkflowSteps(workflow);
+
+                    if (workflow.status === 'completed' || workflow.status === 'failed' || workflow.status === 'cancelled') {
+                        stopPolling();
+                    }
+                }
+            } catch (error) {
+                console.error('Error polling workflow:', error);
+            }
+        }
+
+        function updateWorkflowDisplay(data) {
+            if (data.completed) {
+                addChatMessage('assistant', `✅ ${data.message}`);
+                hideWorkflowSidebar();
+                stopPolling();
+                return;
+            }
+
+            if (data.failed) {
+                addChatMessage('assistant', `❌ ${data.message}`);
+                hideWorkflowSidebar();
+                stopPolling();
+                return;
+            }
+
+            if (data.current_step) {
+                // Show workflow actions if approval is needed
+                const actionsDiv = document.getElementById('workflow-actions');
+                if (data.requires_approval) {
+                    actionsDiv.style.display = 'flex';
+                } else {
+                    actionsDiv.style.display = 'none';
+                }
+
+                // Add message to chat
+                addChatMessage('assistant', `⚙️ ${data.message}`);
+            }
+        }
+
+        function updateWorkflowSteps(workflow) {
+            const stepsContainer = document.getElementById('workflow-steps');
+            const nameEl = document.getElementById('workflow-name');
+            const descEl = document.getElementById('workflow-desc');
+
+            nameEl.textContent = workflow.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            descEl.textContent = workflow.description;
+
+            stepsContainer.innerHTML = workflow.steps.map((step, index) => {
+                const icon = getStepIcon(step.status);
+                return `
+                    <div class="workflow-step ${step.status}">
+                        <div class="step-header">
+                            <div class="step-icon ${step.status}">${icon}</div>
+                            <div class="step-title">${step.title}</div>
+                        </div>
+                        <div class="step-description">${step.description}</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Show active workflow panel
+            document.getElementById('active-workflow').style.display = 'block';
+        }
+
+        function getStepIcon(status) {
+            switch (status) {
+                case 'pending': return '○';
+                case 'in-progress': return '◐';
+                case 'completed': return '✓';
+                case 'failed': return '✗';
+                case 'skipped': return '−';
+                default: return '○';
+            }
+        }
+
+        function showWorkflowSidebar() {
+            const sidebar = document.getElementById('workflow-sidebar');
+            sidebar.classList.remove('hidden');
+        }
+
+        function hideWorkflowSidebar() {
+            const sidebar = document.getElementById('workflow-sidebar');
+            sidebar.classList.add('hidden');
+            document.getElementById('active-workflow').style.display = 'none';
+            document.getElementById('workflow-type').value = '';
+            currentWorkflowId = null;
+        }
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+        // Add workflow suggestions to chat
+        function suggestWorkflow(workflowName) {
+            document.getElementById('workflow-type').value = workflowName;
+            showWorkflowSidebar();
+        }
+    </script>
+</body>
+</html>

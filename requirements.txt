@@ -1,0 +1,27 @@
+# Core dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Storage
+aiosqlite==0.19.0
+
+# AI & Voice
+openai==1.12.0
+python-multipart==0.0.6
+
+# Webhooks
+PyYAML==6.0.1
+
+# CLI
+click==8.1.7
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
+
+# Code formatting
+black==23.12.0
+isort==5.13.2

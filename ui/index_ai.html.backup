@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeployBot Controller - AI Enhanced</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+        }
+
+        .ai-badge {
+            background: linear-gradient(135deg, #10b981, #3b82f6);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 400px;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        /* AI Chat Widget */
+        .ai-chat-widget {
+            position: fixed;
+            bottom: 80px;
+            right: 30px;
+            width: 450px;
+            height: 600px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .ai-chat-widget.open {
+            display: flex;
+        }
+
+        .ai-chat-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-chat-header h3 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+
+        .ai-chat-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .ai-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .ai-message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ai-message.user {
+            background: #667eea;
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .ai-message.assistant {
+            background: #f3f4f6;
+            color: #333;
+            align-self: flex-start;
+        }
+
+        .ai-message.system {
+            background: #fef3c7;
+            color: #92400e;
+            align-self: center;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        .ai-chat-input-container {
+            padding: 15px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 10px;
+        }
+
+        .ai-chat-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .ai-voice-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            font-size: 1.3em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .ai-voice-btn:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+
+        .ai-voice-btn.recording {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .ai-send-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .ai-send-btn:hover {
+            background: #059669;
+        }
+
+        /* AI Fab Button */
+        .ai-fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.8em;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 999;
+            transition: all 0.3s;
+        }
+
+        .ai-fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+        }
+
+        .ai-fab.has-notification::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 12px;
+            height: 12px;
+            background: #ef4444;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        /* AI Insights Panel */
+        .ai-insights {
+            grid-column: span 3;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-left: 4px solid #f59e0b;
+        }
+
+        .insight-item {
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid;
+        }
+
+        .insight-item.warning { border-color: #f59e0b; }
+        .insight-item.error { border-color: #ef4444; }
+        .insight-item.success { border-color: #10b981; }
+        .insight-item.info { border-color: #3b82f6; }
+
+        .insight-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .insight-suggestion {
+            color: #666;
+            font-size: 0.9em;
+            font-style: italic;
+            margin-top: 5px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 1em;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        /* Lists */
+        .list-item {
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .badge-success { background: #10b981; color: white; }
+        .badge-running { background: #3b82f6; color: white; }
+        .badge-pending { background: #f59e0b; color: white; }
+        .badge-failed { background: #ef4444; color: white; }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .quick-action-btn {
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .quick-action-btn:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>🚀 DeployBot Controller</h1>
+                <p class="subtitle">AI-Powered Deployment Orchestration</p>
+            </div>
+            <div class="ai-badge" id="ai-status">
+                ✨ AI Assistant Active
+            </div>
+        </header>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <button class="quick-action-btn" onclick="askAI('Show me all active agents')">
+                🤖 Check Agents
+            </button>
+            <button class="quick-action-btn" onclick="askAI('What deployments are running?')">
+                📊 Running Jobs
+            </button>
+            <button class="quick-action-btn" onclick="askAI('Show me recent failures')">
+                ⚠️ Recent Failures
+            </button>
+            <button class="quick-action-btn" onclick="askAI('Give me deployment stats for the last 24 hours')">
+                📈 24h Stats
+            </button>
+        </div>
+
+        <!-- AI Insights -->
+        <div class="card ai-insights" id="insights-panel" style="display: none;">
+            <h2>🧠 AI Insights</h2>
+            <div id="insights-container"></div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-agents">0</div>
+                <div class="stat-label">Active Agents</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-pending">0</div>
+                <div class="stat-label">Pending Jobs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-completed">0</div>
+                <div class="stat-label">Completed Today</div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="grid">
+            <!-- Quick Deploy -->
+            <div class="card">
+                <h2>🚀 Quick Deploy</h2>
+                <form id="deploy-form" onsubmit="handleDeploy(event)">
+                    <div class="form-group">
+                        <label>Repository</label>
+                        <input type="text" id="repo" placeholder="e.g., myorg/web-app" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Git Reference</label>
+                        <input type="text" id="ref" placeholder="e.g., main, v1.2.3" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Host</label>
+                        <input type="text" id="host" placeholder="e.g., web-01" required>
+                    </div>
+                    <button type="submit">Deploy Now</button>
+                </form>
+            </div>
+
+            <!-- Connected Agents -->
+            <div class="card">
+                <h2>🤖 Connected Agents</h2>
+                <div id="agents-list"></div>
+            </div>
+
+            <!-- Recent Jobs -->
+            <div class="card">
+                <h2>📋 Recent Jobs</h2>
+                <div id="jobs-list" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chat Widget -->
+    <div class="ai-chat-widget" id="ai-chat">
+        <div class="ai-chat-header">
+            <h3>🤖 AI Assistant</h3>
+            <button class="ai-chat-close" onclick="toggleAIChat()">×</button>
+        </div>
+        <div class="ai-chat-messages" id="chat-messages">
+            <div class="ai-message assistant">
+                Hi! I'm your DeployBot AI assistant. I can help you with:
+                <br>• Deploying applications
+                <br>• Checking agent and job status
+                <br>• Viewing deployment statistics
+                <br>• Troubleshooting failed deployments
+                <br>• Getting insights and recommendations
+                <br><br>
+                Try asking me: "Deploy myorg/app to web-01" or "Show me recent failures"
+            </div>
+        </div>
+        <div class="ai-chat-input-container">
+            <input 
+                type="text" 
+                class="ai-chat-input" 
+                id="chat-input" 
+                placeholder="Ask me anything..."
+                onkeypress="handleChatKeypress(event)"
+            >
+            <button class="ai-voice-btn" id="voice-btn" onclick="toggleVoiceInput()" title="Voice input">
+                🎤
+            </button>
+            <button class="ai-send-btn" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <!-- AI Floating Action Button -->
+    <button class="ai-fab" id="ai-fab" onclick="toggleAIChat()" title="AI Assistant">
+        🤖
+    </button>
+
+    <script>
+        let chatHistory = [];
+        let isRecording = false;
+        let mediaRecorder;
+        let audioChunks = [];
+
+        // Check AI status on load
+        async function checkAIStatus() {
+            try {
+                const response = await fetch('/v1/ai/status');
+                const data = await response.json();
+                const statusEl = document.getElementById('ai-status');
+                
+                if (data.enabled) {
+                    statusEl.textContent = `✨ AI Assistant Active (${data.model})`;
+                    statusEl.style.background = 'linear-gradient(135deg, #10b981, #3b82f6)';
+                } else {
+                    statusEl.textContent = '⚠️ AI Assistant Disabled';
+                    statusEl.style.background = '#9ca3af';
+                }
+            } catch (error) {
+                console.error('Failed to check AI status:', error);
+            }
+        }
+
+        // Toggle AI chat
+        function toggleAIChat() {
+            const chat = document.getElementById('ai-chat');
+            chat.classList.toggle('open');
+            
+            if (chat.classList.contains('open')) {
+                document.getElementById('chat-input').focus();
+            }
+        }
+
+        // Handle chat keypress
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Send chat message
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message to chat
+            addChatMessage(message, 'user');
+            input.value = '';
+            
+            // Show typing indicator
+            const typingId = addChatMessage('Thinking...', 'system');
+            
+            try {
+                const response = await fetch('/v1/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        history: chatHistory.slice(-10) // Last 10 messages for context
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Remove typing indicator
+                document.getElementById(typingId).remove();
+                
+                // Add assistant response
+                addChatMessage(data.response, 'assistant');
+                
+                // Update chat history
+                chatHistory.push({ role: 'user', content: message });
+                chatHistory.push({ role: 'assistant', content: data.response });
+                
+                // If action was taken, refresh data
+                if (data.action_taken) {
+                    setTimeout(loadData, 1000);
+                }
+                
+            } catch (error) {
+                document.getElementById(typingId).remove();
+                addChatMessage('Sorry, I encountered an error: ' + error.message, 'system');
+            }
+        }
+
+        // Add message to chat
+        function addChatMessage(text, role) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            const messageId = 'msg-' + Date.now();
+            
+            messageDiv.id = messageId;
+            messageDiv.className = `ai-message ${role}`;
+            messageDiv.textContent = text;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            return messageId;
+        }
+
+        // Quick AI ask
+        async function askAI(question) {
+            toggleAIChat();
+            setTimeout(() => {
+                document.getElementById('chat-input').value = question;
+                sendMessage();
+            }, 300);
+        }
+
+        // Voice input toggle
+        async function toggleVoiceInput() {
+            const btn = document.getElementById('voice-btn');
+            
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+                    
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        await sendAudioToAI(audioBlob);
+                    };
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    btn.classList.add('recording');
+                    btn.textContent = '⏹️';
+                    
+                    addChatMessage('🎤 Recording... Click again to stop', 'system');
+                    
+                } catch (error) {
+                    alert('Microphone access denied: ' + error.message);
+                }
+            } else {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                isRecording = false;
+                btn.classList.remove('recording');
+                btn.textContent = '🎤';
+            }
+        }
+
+        // Send audio to AI
+        async function sendAudioToAI(audioBlob) {
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'audio.wav');
+            
+            const typingId = addChatMessage('Transcribing...', 'system');
+            
+            try {
+                const response = await fetch('/v1/ai/voice/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                document.getElementById(typingId).remove();
+                
+                addChatMessage(`🎤 "${data.transcription}"`, 'user');
+                addChatMessage(data.response, 'assistant');
+                
+                chatHistory.push({ role: 'user', content: data.transcription });
+                chatHistory.push({ role: 'assistant', content: data.response });
+                
+                if (data.action_taken) {
+                    setTimeout(loadData, 1000);
+                }
+                
+            } catch (error) {
+                document.getElementById(typingId).remove();
+                addChatMessage('Voice recognition error: ' + error.message, 'system');
+            }
+        }
+
+        // Load insights
+        async function loadInsights() {
+            try {
+                const response = await fetch('/v1/ai/insights');
+                const insights = await response.json();
+                
+                if (insights.length === 0) return;
+                
+                const panel = document.getElementById('insights-panel');
+                const container = document.getElementById('insights-container');
+                
+                panel.style.display = 'block';
+                container.innerHTML = insights.map(insight => `
+                    <div class="insight-item ${insight.type}">
+                        <div class="insight-title">${insight.title}</div>
+                        <div>${insight.message}</div>
+                        ${insight.suggestion ? `<div class="insight-suggestion">💡 ${insight.suggestion}</div>` : ''}
+                    </div>
+                `).join('');
+                
+                // Show notification on FAB
+                if (insights.some(i => i.type === 'warning' || i.type === 'error')) {
+                    document.getElementById('ai-fab').classList.add('has-notification');
+                }
+                
+            } catch (error) {
+                console.error('Failed to load insights:', error);
+            }
+        }
+
+        // Load dashboard data
+        async function loadData() {
+            try {
+                const [hostsRes, jobsRes] = await Promise.all([
+                    fetch('/v1/hosts'),
+                    fetch('/v1/jobs')
+                ]);
+                
+                const hosts = await hostsRes.json();
+                const jobs = await jobsRes.json();
+                
+                // Update stats
+                document.getElementById('stat-agents').textContent = hosts.length;
+                document.getElementById('stat-pending').textContent = 
+                    jobs.filter(j => j.status === 'pending').length;
+                
+                const today = new Date().toDateString();
+                document.getElementById('stat-completed').textContent = 
+                    jobs.filter(j => 
+                        j.status === 'success' && 
+                        new Date(j.created_at).toDateString() === today
+                    ).length;
+                
+                // Update agents list
+                const agentsList = document.getElementById('agents-list');
+                if (hosts.length === 0) {
+                    agentsList.innerHTML = '<div class="empty-state">No agents connected</div>';
+                } else {
+                    agentsList.innerHTML = hosts.map(host => `
+                        <div class="list-item">
+                            <div>
+                                <strong>${host.hostname}</strong>
+                                <br>
+                                <small style="color: #666;">v${host.version}</small>
+                            </div>
+                            <span class="badge badge-success">●</span>
+                        </div>
+                    `).join('');
+                }
+                
+                // Update jobs list
+                const jobsList = document.getElementById('jobs-list');
+                const recentJobs = jobs.slice(0, 10);
+                
+                if (recentJobs.length === 0) {
+                    jobsList.innerHTML = '<div class="empty-state">No jobs yet</div>';
+                } else {
+                    jobsList.innerHTML = recentJobs.map(job => {
+                        const badgeClass = `badge-${job.status}`;
+                        return `
+                            <div class="list-item">
+                                <div>
+                                    <strong>${job.repository}</strong> @ ${job.ref}
+                                    <br>
+                                    <small style="color: #666;">${job.hostname}</small>
+                                </div>
+                                <span class="badge ${badgeClass}">${job.status}</span>
+                            </div>
+                        `;
+                    }).join('');
+                }
+                
+            } catch (error) {
+                console.error('Failed to load data:', error);
+            }
+        }
+
+        // Handle deploy form
+        async function handleDeploy(event) {
+            event.preventDefault();
+            
+            const repo = document.getElementById('repo').value;
+            const ref = document.getElementById('ref').value;
+            const host = document.getElementById('host').value;
+            
+            try {
+                const response = await fetch('/v1/jobs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        repository: repo,
+                        ref: ref,
+                        hostname: host
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('✅ Deployment job created!');
+                    document.getElementById('deploy-form').reset();
+                    loadData();
+                } else {
+                    alert('❌ Failed to create deployment');
+                }
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            checkAIStatus();
+            loadData();
+            loadInsights();
+            
+            // Auto-refresh
+            setInterval(loadData, 5000);
+            setInterval(loadInsights, 30000); // Check insights every 30s
+        });
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-.PHONY: help install run test fmt clean docker-build docker-up docker-down build-agent run-agent install-agent-deps
+.PHONY: help install run test fmt clean docker-build docker-up docker-down build-agent run-agent install-agent-deps build-dotnet-agent run-dotnet-agent
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -85,3 +85,19 @@ agent-help: ## Show agent setup instructions
 	@echo "4. Configure the agent:"
 	@echo "   Edit .env and set AGENT_HOSTNAME, CONTROLLER_URL, etc."
 	@echo ""
+
+# .NET Agent targets (NEW)
+build-dotnet-agent: ## Build the .NET agent
+	@echo "Building .NET DeployBot agent..."
+	cd src/DeploybotAgent && dotnet build -c Release
+	@echo "✓ .NET agent built successfully"
+
+run-dotnet-agent: ## Run the .NET agent
+	@echo "Starting .NET DeployBot agent..."
+	cd src/DeploybotAgent && dotnet run
+
+publish-dotnet-agent: ## Publish .NET agent for production
+	@echo "Publishing .NET agent for production..."
+	cd src/DeploybotAgent && dotnet publish -c Release -o ../../bin/dotnet-agent
+	@echo "✓ .NET agent published to bin/dotnet-agent/"
+

@@ -50,3 +50,19 @@ htmlcov/
 
 # macOS
 .DS_Store
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+.vs/
+*.dll
+*.exe
+*.pdb
+
+# Go
+.gocache/
+*.test
+coverage.txt

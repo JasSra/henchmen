@@ -133,5 +133,45 @@ class LogEntry(BaseModel):
     message: str
 
 
+# SSH Deployment Models
+class SSHDeploymentMode(str, Enum):
+    """Deployment mode"""
+    AGENT = "agent"  # Use persistent agent
+    SSH = "ssh"      # Use agentless SSH
+
+
+class SSHCredentialsModel(BaseModel):
+    """SSH credentials for agentless deployment"""
+    hostname: str = Field(..., description="Target hostname")
+    port: int = Field(default=22, description="SSH port")
+    username: str = Field(default="root", description="SSH username")
+    password: Optional[str] = Field(None, description="SSH password (use key auth when possible)")
+    private_key: Optional[str] = Field(None, description="SSH private key content")
+    private_key_passphrase: Optional[str] = Field(None, description="Private key passphrase")
+
+
+class SSHDeploymentRequest(BaseModel):
+    """SSH-based deployment request"""
+    credentials: SSHCredentialsModel
+    repo_url: str = Field(..., description="Repository URL to clone")
+    ref: str = Field(default="main", description="Git reference (branch, tag, or commit)")
+    container_name: str = Field(..., description="Container name to deploy")
+
+
+class SSHDeploymentResponse(BaseModel):
+    """SSH deployment response"""
+    success: bool
+    message: str
+    output: Optional[str] = None
+    error: Optional[str] = None
+
+
+class HostConfigurationModel(BaseModel):
+    """Host configuration for deployment"""
+    hostname: str
+    deployment_mode: SSHDeploymentMode = Field(default=SSHDeploymentMode.AGENT)
+    ssh_credentials: Optional[SSHCredentialsModel] = None
+
+
 # Update forward references
 HeartbeatResponse.model_rebuild()

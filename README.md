@@ -1,21 +1,23 @@
 # DeployBot Controller MVP
 
-A lightweight deployment orchestration controller that manages deployment jobs across multiple hosts via agent polling.
+A lightweight deployment orchestration controller that manages deployment jobs across multiple hosts via agents or agentless SSH.
 
 ## ✨ Features
 
 - 🤖 **AI Assistant** - Natural language commands, voice control, smart monitoring
 - 🎨 **Web UI Dashboard** - Real-time monitoring and deployment controls
-- � **Smart Insights** - AI-powered health monitoring and proactive alerts
+- 💡 **Smart Insights** - AI-powered health monitoring and proactive alerts
 - 🎤 **Voice Commands** - Deploy and manage using speech (Whisper AI)
-- � **Chat Interface** - Ask questions and give commands in plain English
+- 💬 **Chat Interface** - Ask questions and give commands in plain English
 - 🔗 **GitHub Webhooks** - Automated deployments on push events
 - 📊 **Real-time Logs** - SSE streaming for live deployment feedback
-- � **Job Queue** - SQLite persistence with in-memory processing
-- �💻 **CLI Tool** - Manual deployments and log viewing
+- 💾 **Job Queue** - SQLite persistence with in-memory processing
+- 💻 **CLI Tool** - Manual deployments and log viewing
 - 🚀 **One-Line Agent Install** - Auto-detects OS, installs dependencies, sets up service
 - 🔒 **Hardened Agent Runtime** - HTTPS + cert pinning, encrypted state, policy enforcement, audit trail
 - 🛠️ **Interactive First-Run Helper** - Guides operators through creating service accounts, Docker access, and TLS scaffolding
+- 🆕 **.NET Agent** - Modern C# agent with same functionality as Go agent
+- 🆕 **Agentless SSH** - Deploy without installing agents using SSH connectivity
 
 ## 🚀 Quick Start
 
@@ -41,20 +43,63 @@ The UI will automatically open at **http://localhost:8080**
 - Get smart insights and proactive monitoring alerts
 - Perform all tasks using natural language
 
-### Install an Agent (on any server)
+## 📡 Deployment Modes
 
-Copy the one-line command from the UI dashboard or run:
+DeployBot now supports **two deployment modes**:
 
+### 1. Agent-Based Deployment (Traditional)
+
+Install a persistent .NET agent on target servers:
+
+**Quick Install (Auto-configured Python Agent):**
 ```bash
 curl -sSL http://localhost:8080/install.sh | bash -s -- http://localhost:8080
 ```
 
-That's it! The agent will:
+**Or Install .NET Agent:**
+```bash
+# Build .NET agent
+make build-dotnet-agent
+
+# Copy to target server and run
+# See DOTNET_AGENT_SETUP.md for details
+```
+
+The agent will:
 - Auto-detect your OS (macOS/Linux)
-- Install Python 3 if needed
 - Configure itself with your controller URL
 - Create a system service (launchd/systemd)
 - Start polling for jobs immediately
+
+### 2. Agentless SSH Deployment (NEW)
+
+Deploy without installing agents using SSH:
+
+```bash
+# Set up SSH keys
+ssh-keygen -t ed25519 -f ~/.ssh/deploybot_key
+ssh-copy-id -i ~/.ssh/deploybot_key.pub user@target-server
+
+# Deploy via SSH API
+curl -X POST http://localhost:8080/v1/deploy/ssh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "credentials": {
+      "hostname": "target-server",
+      "username": "deploybot",
+      "private_key": "..."
+    },
+    "repo_url": "https://github.com/myorg/app.git",
+    "ref": "main",
+    "container_name": "myapp"
+  }'
+```
+
+**Benefits of SSH Mode:**
+- No agent installation required
+- Works with any SSH-enabled server
+- Simpler infrastructure management
+- Perfect for ad-hoc deployments
 
 ### Deploy from the UI
 
@@ -66,9 +111,11 @@ That's it! The agent will:
 
 ## 📚 Documentation
 
+- **[DOTNET_AGENT_SETUP.md](DOTNET_AGENT_SETUP.md)** - .NET agent and SSH setup guide
+- **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Migrate from Go to .NET or SSH
 - [UI Guide](docs/UI_GUIDE.md) - Dashboard features and agent installation
 - [Quick Start](docs/QUICKSTART.md) - Getting started guide
-- [Architecture](docs/ARCHITECTURE.md) - System design and components
+- [Architecture](ARCHITECTURE.md) - System design and components (updated)
 - [Agent Operations](docs/agent-usage.md) - Configuration, security controls, capability matrix
 - [Deployment](docs/DEPLOYMENT.md) - Production deployment guide
 - [Project Summary](docs/PROJECT_SUMMARY.md) - Complete feature overview

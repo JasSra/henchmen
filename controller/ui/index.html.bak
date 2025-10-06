@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeployBot Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .stat:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .badge-success { background: #10b981; color: white; }
+        .badge-running { background: #3b82f6; color: white; }
+        .badge-pending { background: #f59e0b; color: white; }
+        .badge-failed { background: #ef4444; color: white; }
+        .badge-offline { background: #6b7280; color: white; }
+
+        .deploy-form {
+            display: grid;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        input, select {
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .job-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .job-item {
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            background: #f9fafb;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .job-id {
+            font-family: monospace;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .job-details {
+            font-size: 0.95em;
+            color: #555;
+        }
+
+        .job-meta {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        .agent-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f9fafb;
+            margin-bottom: 8px;
+            border-radius: 6px;
+        }
+
+        .agent-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .agent-info {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .refresh-btn {
+            background: #10b981;
+            padding: 8px 16px;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .refresh-btn:hover {
+            background: #059669;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .install-section {
+            background: #1f2937;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .install-section h3 {
+            margin-bottom: 10px;
+            color: #10b981;
+        }
+
+        .install-section code {
+            display: block;
+            background: #111827;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 DeployBot Controller</h1>
+            <p class="subtitle">Lightweight deployment orchestration dashboard</p>
+        </header>
+
+        <div class="grid">
+            <!-- Stats Card -->
+            <div class="card">
+                <h2>📊 Statistics</h2>
+                <div class="stat">
+                    <span class="stat-label">Active Agents</span>
+                    <span class="stat-value" id="stat-agents">-</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Total Jobs</span>
+                    <span class="stat-value" id="stat-jobs">-</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Running Jobs</span>
+                    <span class="stat-value" id="stat-running">-</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Pending Jobs</span>
+                    <span class="stat-value" id="stat-pending">-</span>
+                </div>
+            </div>
+
+            <!-- Deploy Card -->
+            <div class="card">
+                <h2>🎯 Create Deployment</h2>
+                <div id="deploy-alert"></div>
+                <form class="deploy-form" id="deploy-form">
+                    <div class="form-group">
+                        <label for="repo">Repository</label>
+                        <input type="text" id="repo" placeholder="myorg/my-repo" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ref">Ref (branch/tag/commit)</label>
+                        <input type="text" id="ref" placeholder="main" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="host">Target Host</label>
+                        <select id="host" required>
+                            <option value="">Loading hosts...</option>
+                        </select>
+                    </div>
+                    <button type="submit" id="deploy-btn">Deploy Now</button>
+                </form>
+            </div>
+
+            <!-- Agent Installation -->
+            <div class="card">
+                <h2>🤖 Setup Agent</h2>
+                <p style="color: #666; margin-bottom: 15px;">
+                    Run this command on your server to install and connect an agent:
+                </p>
+                <div class="install-section">
+                    <h3>One-Line Install</h3>
+                    <code id="install-cmd">curl -sSL http://localhost:8080/install.sh | bash</code>
+                </div>
+                <button onclick="copyInstallCmd()" style="margin-top: 10px; background: #10b981;">
+                    📋 Copy Command
+                </button>
+            </div>
+        </div>
+
+        <!-- Agents List -->
+        <div class="card">
+            <h2>🖥️ Connected Agents</h2>
+            <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+            <div id="agents-list" class="loading">Loading agents...</div>
+        </div>
+
+        <!-- Jobs List -->
+        <div class="card">
+            <h2>📦 Recent Jobs</h2>
+            <div id="jobs-list" class="job-list loading">Loading jobs...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let refreshInterval;
+
+        // Load all data
+        async function loadData() {
+            await Promise.all([
+                loadAgents(),
+                loadJobs(),
+                loadStats()
+            ]);
+        }
+
+        // Load agents
+        async function loadAgents() {
+            try {
+                const response = await fetch(`${API_BASE}/v1/hosts`);
+                const data = await response.json();
+                
+                const agentsContainer = document.getElementById('agents-list');
+                const hostSelect = document.getElementById('host');
+                
+                if (data.hosts.length === 0) {
+                    agentsContainer.innerHTML = '<div class="empty-state">No agents connected yet. Install an agent to get started!</div>';
+                    hostSelect.innerHTML = '<option value="">No hosts available</option>';
+                    return;
+                }
+                
+                // Update agents list
+                agentsContainer.innerHTML = data.hosts.map(host => `
+                    <div class="agent-item">
+                        <div>
+                            <div class="agent-name">${host.hostname}</div>
+                            <div class="agent-info">
+                                ${host.agent_id ? `Agent ID: ${host.agent_id.substring(0, 8)}...` : 'No agent'}
+                                ${host.last_seen ? ` • Last seen: ${new Date(host.last_seen).toLocaleString()}` : ''}
+                            </div>
+                        </div>
+                        <span class="badge badge-${host.agent_status === 'online' ? 'success' : 'offline'}">
+                            ${host.agent_status || 'unknown'}
+                        </span>
+                    </div>
+                `).join('');
+                
+                // Update host dropdown
+                hostSelect.innerHTML = '<option value="">Select a host...</option>' + 
+                    data.hosts.map(host => `<option value="${host.hostname}">${host.hostname}</option>`).join('');
+                
+            } catch (error) {
+                console.error('Error loading agents:', error);
+                document.getElementById('agents-list').innerHTML = '<div class="empty-state">Error loading agents</div>';
+            }
+        }
+
+        // Load jobs
+        async function loadJobs() {
+            try {
+                const response = await fetch(`${API_BASE}/v1/jobs`);
+                const jobs = await response.json();
+                
+                const jobsContainer = document.getElementById('jobs-list');
+                
+                if (jobs.length === 0) {
+                    jobsContainer.innerHTML = '<div class="empty-state">No jobs yet. Create your first deployment!</div>';
+                    return;
+                }
+                
+                jobsContainer.innerHTML = jobs.slice(0, 20).map(job => {
+                    const statusBadge = {
+                        'pending': 'badge-pending',
+                        'running': 'badge-running',
+                        'success': 'badge-success',
+                        'failed': 'badge-failed'
+                    }[job.status] || 'badge-pending';
+                    
+                    const icon = {
+                        'pending': '⏳',
+                        'running': '▶️',
+                        'success': '✅',
+                        'failed': '❌'
+                    }[job.status] || '•';
+                    
+                    return `
+                        <div class="job-item">
+                            <div class="job-header">
+                                <span class="job-id">${icon} ${job.id.substring(0, 8)}...</span>
+                                <span class="badge ${statusBadge}">${job.status}</span>
+                            </div>
+                            <div class="job-details">
+                                <strong>${job.repo}</strong> @ ${job.ref.substring(0, 10)}
+                            </div>
+                            <div class="job-meta">
+                                <span>🖥️ ${job.host}</span>
+                                <span>🕐 ${new Date(job.created_at).toLocaleString()}</span>
+                                ${job.metadata?.app ? `<span>📦 ${job.metadata.app}</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error loading jobs:', error);
+                document.getElementById('jobs-list').innerHTML = '<div class="empty-state">Error loading jobs</div>';
+            }
+        }
+
+        // Load stats
+        async function loadStats() {
+            try {
+                const [hostsRes, jobsRes] = await Promise.all([
+                    fetch(`${API_BASE}/v1/hosts`),
+                    fetch(`${API_BASE}/v1/jobs`)
+                ]);
+                
+                const hosts = await hostsRes.json();
+                const jobs = await jobsRes.json();
+                
+                document.getElementById('stat-agents').textContent = hosts.hosts.length;
+                document.getElementById('stat-jobs').textContent = jobs.length;
+                document.getElementById('stat-running').textContent = jobs.filter(j => j.status === 'running').length;
+                document.getElementById('stat-pending').textContent = jobs.filter(j => j.status === 'pending').length;
+                
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Handle deploy form
+        document.getElementById('deploy-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('deploy-btn');
+            const alert = document.getElementById('deploy-alert');
+            const originalText = btn.textContent;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Deploying...';
+            alert.innerHTML = '';
+            
+            try {
+                const response = await fetch(`${API_BASE}/v1/jobs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        repo: document.getElementById('repo').value,
+                        ref: document.getElementById('ref').value,
+                        host: document.getElementById('host').value,
+                        metadata: { trigger: 'ui' }
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    alert.innerHTML = `<div class="alert alert-success">✅ Deployment job created! ID: ${data.job.id.substring(0, 8)}...</div>`;
+                    document.getElementById('deploy-form').reset();
+                    setTimeout(loadData, 1000);
+                } else {
+                    const error = await response.text();
+                    alert.innerHTML = `<div class="alert alert-error">❌ Error: ${error}</div>`;
+                }
+                
+            } catch (error) {
+                alert.innerHTML = `<div class="alert alert-error">❌ Error: ${error.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        });
+
+        // Copy install command
+        function copyInstallCmd() {
+            const cmd = document.getElementById('install-cmd').textContent;
+            navigator.clipboard.writeText(cmd);
+            alert('📋 Install command copied to clipboard!');
+        }
+
+        // Load and update install command
+        async function loadInstallCommand() {
+            try {
+                const response = await fetch(`${API_BASE}/install-cmd`);
+                const data = await response.json();
+                document.getElementById('install-cmd').textContent = data.install_command;
+            } catch (error) {
+                console.error('Error loading install command:', error);
+                // Fallback to manual construction
+                const installCmd = `curl -sSL ${window.location.origin}/install.sh | bash`;
+                document.getElementById('install-cmd').textContent = installCmd;
+            }
+        }
+
+        // Update install command on page load
+        window.addEventListener('load', loadInstallCommand);
+
+        // Initial load and auto-refresh
+        loadData();
+        refreshInterval = setInterval(loadData, 5000); // Refresh every 5 seconds
+    </script>
+</body>
+</html>

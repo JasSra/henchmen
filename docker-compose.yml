@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   controller:
-    build: .
+    build: ./controller
     ports:
       - "8080:8080"
     environment:
@@ -12,8 +10,9 @@ services:
       - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-your-webhook-secret-here}
       - LOG_LEVEL=INFO
     volumes:
-      - ./data:/app/data
-      - ./config:/app/config
+      - ./controller/data:/app/data
+      - ./controller/config:/app/config
+      - ./controller/ui:/app/ui
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -21,3 +20,20 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+  agent:
+    build: ./agent
+    user: "0:0"
+    environment:
+      - CONTROLLER_URL=http://controller:8080
+      - AGENT_TOKEN=${AGENT_TOKEN:-dev-token}
+      - ALLOW_INSECURE_CONTROLLER=true
+      - AGENT_DATA_DIR=/var/lib/deploybot
+      - AGENT_WORK_DIR=/work
+      - HEARTBEAT_INTERVAL=30s
+    volumes:
+      - ./agent/data:/var/lib/deploybot
+      - ./agent/work:/work
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - controller
+    restart: unless-stopped

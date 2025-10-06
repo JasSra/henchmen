@@ -1,0 +1,9 @@
+{
+  "repo": "example/repo",
+  "ref": "main",
+  "host": "cf1aae275df6",
+  "metadata": {
+    "strategy": "image",
+    "image": "hello-world:latest"
+  }
+}

@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 # DeployBot Agent Auto-Install Script
 # Usage Examples:
 #   curl -sSL http://controller:8080/install.sh | bash
@@ -494,98 +494,6 @@ AGENT_SCRIPT
 chmod +x agent.py
 
 echo -e "${GREEN}✓${NC} Agent executable created"
-    
-    def register(self) -> bool:
-        """Register with controller"""
-        try:
-            response = requests.post(
-                f"{self.controller_url}/v1/agents/register",
-                json={
-                    "hostname": self.hostname,
-                    "capabilities": {
-                        "platform": sys.platform,
-                        "python_version": sys.version
-                    }
-                },
-                timeout=10
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                self.agent_id = data["id"]
-                logger.info(f"✓ Registered. Agent ID: {self.agent_id[:8]}...")
-                return True
-            else:
-                logger.error(f"✗ Registration failed: {response.status_code}")
-                return False
-        except Exception as e:
-            logger.error(f"✗ Registration error: {e}")
-            return False
-    
-    def heartbeat(self) -> Optional[dict]:
-        """Send heartbeat"""
-        if not self.agent_id:
-            return None
-        
-        try:
-            response = requests.post(
-                f"{self.controller_url}/v1/agents/{self.agent_id}/heartbeat",
-                json={"status": "online"},
-                timeout=10
-            )
-            
-            if response.status_code == 200:
-                return response.json().get("job")
-            return None
-        except Exception as e:
-            logger.error(f"✗ Heartbeat error: {e}")
-            return None
-    
-    def execute_job(self, job: dict):
-        """Execute deployment job"""
-        job_id = job["id"]
-        repo = job["repo"]
-        ref = job["ref"]
-        
-        logger.info(f"▶️  Executing job {job_id[:8]}...")
-        logger.info(f"   Repo: {repo}")
-        logger.info(f"   Ref: {ref}")
-        
-        # Simple simulation - in production, implement actual deployment
-        logger.info("   Running deployment...")
-        time.sleep(2)
-        logger.info(f"✅ Job {job_id[:8]} completed!")
-    
-    def run(self):
-        """Main loop"""
-        logger.info(f"🚀 DeployBot Agent starting on {self.hostname}")
-        logger.info(f"   Controller: {self.controller_url}")
-        
-        if not self.register():
-            logger.error("Failed to register. Retrying in 5s...")
-            time.sleep(5)
-            return self.run()
-        
-        logger.info("✓ Agent registered successfully!")
-        logger.info("👂 Listening for jobs...")
-        
-        try:
-            while self.running:
-                job = self.heartbeat()
-                if job:
-                    self.execute_job(job)
-                time.sleep(HEARTBEAT_INTERVAL)
-        except KeyboardInterrupt:
-            logger.info("👋 Shutting down...")
-        except Exception as e:
-            logger.error(f"Fatal error: {e}")
-
-if __name__ == "__main__":
-    agent = Agent(CONTROLLER_URL, HOSTNAME)
-    agent.run()
-AGENT_SCRIPT
-
-chmod +x agent.py
 
 # Create configuration file
 echo -e "${YELLOW}⚙️  Creating configuration...${NC}"

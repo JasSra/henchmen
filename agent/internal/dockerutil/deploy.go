@@ -8,6 +8,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	imagetypes "github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
@@ -45,30 +46,19 @@ func (m *Manager) DeploySingle(ctx context.Context, opts DeploySingleOptions) (s
 	if opts.RestartPolicy == "" {
 		opts.RestartPolicy = "unless-stopped"
 	}
-
 	if err := m.EnsureImage(ctx, opts.Image); err != nil {
 		return "", err
 	}
 
 	networking := &network.NetworkingConfig{}
 	if opts.Network != "" {
-		networking.EndpointsConfig = map[string]*network.EndpointSettings{
-			opts.Network: {},
-		}
+		networking.EndpointsConfig = map[string]*network.EndpointSettings{opts.Network: {}}
 	}
 
 	ops.Labels = WithAgentLabels(opts.Labels)
 
-	containerConfig := &container.Config{
-		Image:       opts.Image,
-		Env:         mapToEnv(opts.Environment),
-		Labels:      opts.Labels,
-		Healthcheck: opts.Healthcheck,
-	}
-
-	hostConfig := &container.HostConfig{
-		RestartPolicy: container.RestartPolicy{Name: opts.RestartPolicy},
-	}
+	containerConfig := &container.Config{Image: opts.Image, Env: mapToEnv(opts.Environment), Labels: opts.Labels, Healthcheck: opts.Healthcheck}
+	hostConfig := &container.HostConfig{RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyMode(opts.RestartPolicy)}}
 
 	if len(opts.Volumes) > 0 {
 		hostConfig.Mounts = make([]mount.Mount, 0, len(opts.Volumes))
@@ -100,11 +90,9 @@ func (m *Manager) DeploySingle(ctx context.Context, opts DeploySingleOptions) (s
 	if err != nil {
 		return "", err
 	}
-
-	if err := m.cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+	if err := m.cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
 		return "", err
 	}
-
 	return resp.ID, nil
 }
 
@@ -127,7 +115,6 @@ func (m *Manager) WaitHealthy(ctx context.Context, containerID string, timeout t
 			sw := ins.State.Health.Status
 			switch sw {
 			case "starting":
-				// keep waiting
 			case "healthy":
 				return nil
 			case "unhealthy":
@@ -140,18 +127,16 @@ func (m *Manager) WaitHealthy(ctx context.Context, containerID string, timeout t
 }
 
 func (m *Manager) EnsureImage(ctx context.Context, image string) error {
-	// Attempt a local inspect first.
 	_, _, err := m.cli.ImageInspectWithRaw(ctx, image)
 	if err == nil {
 		return nil
 	}
 	if client.IsErrNotFound(err) {
-		reader, pullErr := m.cli.ImagePull(ctx, image, types.ImagePullOptions{})
+		reader, pullErr := m.cli.ImagePull(ctx, image, imagetypes.PullOptions{})
 		if pullErr != nil {
 			return pullErr
 		}
 		defer reader.Close()
-		// Drain stream quietly to allow pull to complete.
 		_, _ = io.Copy(io.Discard, reader)
 		return nil
 	}
@@ -171,7 +156,7 @@ func mapToEnv(env map[string]string) []string {
 
 // RemoveContainer removes container by ID.
 func (m *Manager) RemoveContainer(ctx context.Context, id string, force bool) error {
-	return m.cli.ContainerRemove(ctx, id, types.ContainerRemoveOptions{Force: force, RemoveVolumes: true})
+	return m.cli.ContainerRemove(ctx, id, container.RemoveOptions{Force: force, RemoveVolumes: true})
 }
 
 // RenameContainer renames a container.
@@ -191,7 +176,7 @@ func (m *Manager) StopContainer(ctx context.Context, id string, timeout *time.Du
 
 // StartContainer starts a stopped container.
 func (m *Manager) StartContainer(ctx context.Context, id string) error {
-	return m.cli.ContainerStart(ctx, id, types.ContainerStartOptions{})
+	return m.cli.ContainerStart(ctx, id, container.StartOptions{})
 }
 
 // InspectContainer returns container inspect data.

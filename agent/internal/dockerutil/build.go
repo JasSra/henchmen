@@ -16,18 +16,15 @@ func CreateBuildContext(contextDir, dockerfile string) (io.ReadCloser, error) {
 	if contextDir == "" {
 		contextDir = "."
 	}
-	options := &archive.TarOptions{
-		IncludeFiles: []string{"."},
-	}
+	options := &archive.TarOptions{IncludeFiles: []string{"."}}
 	return archive.TarWithOptions(contextDir, options)
 }
 
 // BuildImage builds a Docker image from the supplied context and dockerfile.
-
 func (m *Manager) BuildImage(ctx context.Context, buildCtx io.ReadCloser, dockerfile, tag string) error {
 	defer buildCtx.Close()
 	tag = EnsureAgentImageTag(tag)
-	opts := types.ImageBuildOptions{
+	ops := types.ImageBuildOptions{
 		Dockerfile: filepath.ToSlash(dockerfile),
 		Tags:       []string{tag},
 		Labels:     DefaultImageLabels(),

@@ -494,6 +494,9 @@ AGENT_SCRIPT
 chmod +x agent.py
 
 echo -e "${GREEN}✓${NC} Agent executable created"
+
+# Create configuration file
+echo -e "${YELLOW}⚙️  Creating configuration...${NC}"
     
     def register(self) -> bool:
         """Register with controller"""

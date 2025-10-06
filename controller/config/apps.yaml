@@ -1,0 +1,30 @@
+# DeployBot Applications Configuration
+# Maps repositories to deployment hosts
+
+apps:
+  - name: "web-frontend"
+    repo: "myorg/web-frontend"
+    hosts:
+      - "web-01.example.com"
+      - "web-02.example.com"
+    deploy_on_push: true
+    branches:
+      - "main"
+      - "production"
+
+  - name: "api-service"
+    repo: "myorg/api-service"
+    hosts:
+      - "api-01.example.com"
+      - "api-02.example.com"
+    deploy_on_push: true
+    branches:
+      - "main"
+
+  - name: "worker-service"
+    repo: "myorg/worker-service"
+    hosts:
+      - "worker-01.example.com"
+    deploy_on_push: false
+    branches:
+      - "main"

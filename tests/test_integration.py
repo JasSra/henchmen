@@ -14,7 +14,7 @@ import os
 os.environ['DATABASE_PATH'] = ':memory:'
 os.environ['GITHUB_WEBHOOK_SECRET'] = 'test-secret-123'
 
-from app.main import app
+from controller.app.main import app
 
 
 @pytest.fixture
@@ -41,7 +41,9 @@ class FakeAgent:
         )
         assert response.status_code == 200
         data = response.json()
-        self.agent_id = data["id"]
+        # New API returns { agent_id, agent_token }
+        assert "agent_id" in data and "agent_token" in data
+        self.agent_id = data["agent_id"]
         return data
     
     def heartbeat(self):
@@ -62,9 +64,8 @@ def test_01_agent_registration_and_heartbeat(client):
     
     # Register agent
     agent_data = agent.register()
-    assert agent_data["hostname"] == "test-host-01.example.com"
-    assert agent_data["status"] == "online"
-    assert "id" in agent_data
+    assert "agent_id" in agent_data
+    assert isinstance(agent_data["agent_id"], str)
     
     # Send heartbeat - should return no job
     heartbeat_response = agent.heartbeat()
@@ -132,8 +133,9 @@ def test_03_agent_receives_job_on_heartbeat(client):
     
     received_job = heartbeat_response["job"]
     assert received_job["id"] == created_job_id
-    assert received_job["status"] == "running"
-    assert received_job["assigned_agent"] == agent.agent_id
+    # New job shape for agent: { id, type, payload }
+    assert received_job["type"] == "deploy"
+    assert "payload" in received_job
     
     # Second heartbeat should return no job
     heartbeat_response2 = agent.heartbeat()
@@ -162,7 +164,7 @@ def test_04_job_idempotency(client):
     # Agent picks up the job (makes it running)
     heartbeat_response = agent.heartbeat()
     assert heartbeat_response["job"]["id"] == job1_id
-    assert heartbeat_response["job"]["status"] == "running"
+    assert heartbeat_response["job"]["type"] == "deploy"
     
     # Try to create duplicate job (same repo+ref+host) while first is running
     response2 = client.post("/v1/jobs", json=job_data)

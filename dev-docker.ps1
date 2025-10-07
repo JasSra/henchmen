@@ -20,7 +20,7 @@ if ($Help) {
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-Write-Host "🐳 Starting DeployBot Docker Development Environment" -ForegroundColor Blue
+Write-Host "[DOCKER] Starting DeployBot Docker Development Environment" -ForegroundColor Blue
 Write-Host "===================================================="
 
 # Function to check if command exists
@@ -36,10 +36,10 @@ function Test-Command {
 }
 
 # Function to Write colored output
-function Write-Success { param($Message) Write-Host "✅ $Message" -ForegroundColor Green }
-function Write-Error { param($Message) Write-Host "❌ $Message" -ForegroundColor Red }
-function Write-Warning { param($Message) Write-Host "⚠️  $Message" -ForegroundColor Yellow }
-function Write-Info { param($Message) Write-Host "ℹ️  $Message" -ForegroundColor Blue }
+function Write-Success { param($Message) Write-Host "[OK] $Message" -ForegroundColor Green }
+function Write-Error { param($Message) Write-Host "[ERROR] $Message" -ForegroundColor Red }
+function Write-Warning { param($Message) Write-Host "[WARN] $Message" -ForegroundColor Yellow }
+function Write-Info { param($Message) Write-Host "[INFO] $Message" -ForegroundColor Blue }
 
 # Global variables
 $script:ComposeCmd = ""
@@ -50,7 +50,7 @@ function Stop-DockerServices {
     
     try {
         & $script:ComposeCmd down
-        Write-Success "🎉 Docker development environment stopped"
+        Write-Success "Docker development environment stopped"
     }
     catch {
         Write-Warning "Failed to stop Docker services: $($_.Exception.Message)"
@@ -60,14 +60,25 @@ function Stop-DockerServices {
 # Register cleanup on exit
 Register-EngineEvent PowerShell.Exiting -Action { Stop-DockerServices }
 
-# Handle Ctrl+C
-[Console]::TreatControlCAsInput = $false
-$null = [Console]::CancelKeyPress.Add({
-    param($s, $e)
-    $e.Cancel = $true
+# Setup interrupt handling for Ctrl+C
+$script:CtrlCPressed = $false
+$handler = {
+    if (-not $script:CtrlCPressed) {
+        $script:CtrlCPressed = $true
+        Stop-DockerServices
+        exit 0
+    }
+}
+
+# Register the event handler
+$null = Register-EngineEvent -SourceIdentifier "ConsoleCancel" -Action $handler
+
+# Add trap for error handling
+trap {
+    Write-Error "Script execution failed: $_"
     Stop-DockerServices
-    exit 0
-})
+    exit 1
+}
 
 try {
     # Check dependencies
@@ -82,12 +93,21 @@ try {
     if (Test-Command "docker-compose") {
         $script:ComposeCmd = "docker-compose"
     }
-    elseif ((docker compose version 2>$null | Out-Null; $?)) {
-        $script:ComposeCmd = "docker", "compose"
-    }
     else {
-        Write-Error "Docker Compose is required"
-        exit 1
+        try {
+            docker compose version 2>$null | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                $script:ComposeCmd = "docker", "compose"
+            }
+            else {
+                Write-Error "Docker Compose is required"
+                exit 1
+            }
+        }
+        catch {
+            Write-Error "Docker Compose is required"
+            exit 1
+        }
     }
 
     Write-Success "Docker and Docker Compose found"
@@ -98,13 +118,14 @@ try {
     # Create .env for controller if it doesn't exist
     if (-not (Test-Path "controller\.env")) {
         Write-Host "Creating controller .env file..."
-        @"
+        $envContent = @"
 AI_ENABLED=true
 OPENAI_API_KEY=sk-placeholder-key-for-development
 DATABASE_URL=sqlite:///./data/deploybot.db
 LOG_LEVEL=INFO
 SECRET_KEY=dev-secret-key-change-in-production
-"@ | Out-File -FilePath "controller\.env" -Encoding utf8
+"@
+        $envContent | Out-File -FilePath "controller\.env" -Encoding utf8
     }
 
     # Ensure data directories exist
@@ -177,7 +198,7 @@ SECRET_KEY=dev-secret-key-change-in-production
     }
 
     Write-Host ""
-    Write-Success "🎉 Docker development environment is running!"
+    Write-Success "Docker development environment is running!"
     Write-Host ""
     Write-Info "Services:"
     Write-Host "  Controller: " -NoNewline

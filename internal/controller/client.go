@@ -162,11 +162,11 @@ func normalizePins(values []string) ([][]byte, error) {
 
 // RegisterRequest contains the payload for registering the agent.
 type RegisterRequest struct {
-	Token         string        `json:"token"`
-	Metrics       Metrics       `json:"metrics"`
-	DockerVersion string        `json:"docker_version"`
-	Hostname      string        `json:"hostname"`
-	Capabilities  []string      `json:"capabilities,omitempty"`
+	Token         string   `json:"token"`
+	Metrics       Metrics  `json:"metrics"`
+	DockerVersion string   `json:"docker_version"`
+	Hostname      string   `json:"hostname"`
+	Capabilities  []string `json:"capabilities,omitempty"`
 }
 
 // Metrics summarises host resource utilisation.
@@ -184,18 +184,18 @@ type RegisterResponse struct {
 
 // HeartbeatRequest is sent periodically with metrics and inventory.
 type HeartbeatRequest struct {
-	Metrics   Metrics             `json:"metrics"`
-	Inventory []InventoryResource `json:"inventory"`
-	Capabilities []string         `json:"capabilities,omitempty"`
+	Metrics      Metrics             `json:"metrics"`
+	Inventory    []InventoryResource `json:"inventory"`
+	Capabilities []string            `json:"capabilities,omitempty"`
 }
 
 // InventoryResource describes a running container.
 type InventoryResource struct {
-	Name    string            `json:"name"`
-	Image   string            `json:"image"`
-	Ports   map[string]string `json:"ports"`
-	Status  string            `json:"status"`
-	Health  string            `json:"health"`
+	Name   string            `json:"name"`
+	Image  string            `json:"image"`
+	Ports  map[string]string `json:"ports"`
+	Status string            `json:"status"`
+	Health string            `json:"health"`
 }
 
 // HeartbeatResponse conveys optional pending work.

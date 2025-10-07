@@ -34,14 +34,18 @@ func (m *Manager) Close() error { return m.cli.Close() }
 // Version returns the Docker engine version.
 func (m *Manager) Version(ctx context.Context) (string, error) {
 	ver, err := m.cli.ServerVersion(ctx)
-	if err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
 	return ver.Version, nil
 }
 
 // Inventory fetches metadata about running containers for heartbeat payloads.
 func (m *Manager) Inventory(ctx context.Context) ([]controller.InventoryResource, error) {
 	containers, err := m.cli.ContainerList(ctx, container.ListOptions{All: true})
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	resources := make([]controller.InventoryResource, 0, len(containers))
 	for _, c := range containers {
@@ -53,7 +57,9 @@ func (m *Manager) Inventory(ctx context.Context) ([]controller.InventoryResource
 		health := ""
 		if c.State == "running" {
 			ins, err := m.cli.ContainerInspect(ctx, c.ID)
-			if err == nil && ins.State != nil && ins.State.Health != nil { health = ins.State.Health.Status }
+			if err == nil && ins.State != nil && ins.State.Health != nil {
+				health = ins.State.Health.Status
+			}
 		}
 		resources = append(resources, controller.InventoryResource{
 			Name: trimLeadingSlash(c.Names), Image: c.Image, Ports: ports, Status: c.Status, Health: health,
@@ -91,21 +97,28 @@ func (m *Manager) FindContainerByLabel(ctx context.Context, key, value string) (
 }
 
 func trimLeadingSlash(names []string) string {
-	if len(names) == 0 { return "" }
+	if len(names) == 0 {
+		return ""
+	}
 	name := names[0]
-	for len(name) > 0 && name[0] == '/' { name = name[1:] }
+	for len(name) > 0 && name[0] == '/' {
+		name = name[1:]
+	}
 	return name
 }
 
 // ImageDigest resolves the digest associated with an image reference.
 func (m *Manager) ImageDigest(ctx context.Context, ref string) (string, error) {
 	inspect, _, err := m.cli.ImageInspectWithRaw(ctx, ref)
-	if err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
 	if len(inspect.RepoDigests) > 0 {
 		digest := inspect.RepoDigests[0]
-		if idx := strings.Index(digest, "@"); idx >= 0 { return digest[idx+1:], nil }
+		if idx := strings.Index(digest, "@"); idx >= 0 {
+			return digest[idx+1:], nil
+		}
 		return digest, nil
 	}
 	return inspect.ID, nil
 }
-

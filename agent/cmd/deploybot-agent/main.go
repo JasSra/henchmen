@@ -186,7 +186,7 @@ func sendHeartbeat(ctx context.Context, handler *jobs.Handler, client *controlle
 			MemPercent: snap.MemPercent,
 			DiskFreeGB: snap.DiskFreeGB,
 		},
-		Inventory: inventory,
+		Inventory:    inventory,
 		Capabilities: capabilities,
 	}
 
@@ -224,7 +224,7 @@ func sendHeartbeat(ctx context.Context, handler *jobs.Handler, client *controlle
 }
 
 type controllerLogPublisher struct {
-	client *controller.Client
+	client  *controller.Client
 	agentID string
 }
 

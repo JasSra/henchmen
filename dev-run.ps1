@@ -1,8 +1,9 @@
 <#
 .SYNOPSIS
-    Development Runner Script for DeployBot
+    Development Runner Script for DeployBot Controller
 .DESCRIPTION
-    Runs controller and agent locally for development on Windows
+    Runs only the controller locally for development on Windows.
+    Use dev-docker.ps1 to run both controller and agent in containers.
 .EXAMPLE
     .\dev-run.ps1
 #>
@@ -20,7 +21,7 @@ if ($Help) {
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-Write-Host "[LOCAL] Starting DeployBot Development Environment" -ForegroundColor Blue
+Write-Host "[LOCAL] Starting DeployBot Controller Development Environment" -ForegroundColor Blue
 Write-Host "=============================================="
 
 # Function to check if command exists
@@ -43,7 +44,6 @@ function Write-Info { param($Message) Write-Host "[INFO] $Message" -ForegroundCo
 
 # Global variables for process tracking
 $script:ControllerProcess = $null
-$script:AgentProcess = $null
 
 # Cleanup function
 function Stop-Services {
@@ -56,16 +56,6 @@ function Stop-Services {
         }
         catch {
             Write-Warning "Failed to stop controller: $($_.Exception.Message)"
-        }
-    }
-    
-    if ($script:AgentProcess -and -not $script:AgentProcess.HasExited) {
-        try {
-            $script:AgentProcess.Kill()
-            Write-Success "Agent stopped"
-        }
-        catch {
-            Write-Warning "Failed to stop agent: $($_.Exception.Message)"
         }
     }
     
@@ -104,13 +94,8 @@ try {
         exit 1
     }
 
-    if (-not (Test-Command "go")) {
-        Write-Error "Go is required"
-        exit 1
-    }
-
     if (-not (Test-Command "docker")) {
-        Write-Error "Docker is required"
+        Write-Error "Docker is required for agent connectivity (install.sh downloads)"
         exit 1
     }
 
@@ -176,33 +161,6 @@ SECRET_KEY=dev-secret-key-change-in-production
 
     Pop-Location
 
-    # Build and start agent
-    Write-Info "Building and starting agent..."
-    Push-Location "agent"
-
-    Write-Host "Building agent..."
-    go build -o deploybot-agent.exe .\cmd\deploybot-agent
-
-    Write-Host "Starting agent..."
-    $env:CONTROLLER_URL = "http://localhost:8080"
-    $env:AGENT_TOKEN = "dev-agent-token"
-    $env:DATA_DIR = ".\data"
-    $env:WORK_DIR = ".\work"
-    $env:HEARTBEAT_INTERVAL = "10s"
-    $env:LOG_LEVEL = "info"
-
-    if (-not (Test-Path "data")) {
-        New-Item -ItemType Directory -Path "data" -Force | Out-Null
-    }
-    if (-not (Test-Path "work")) {
-        New-Item -ItemType Directory -Path "work" -Force | Out-Null
-    }
-
-    $script:AgentProcess = Start-Process -FilePath ".\deploybot-agent.exe" -PassThru -WindowStyle Hidden
-    Write-Success "Agent started (PID: $($script:AgentProcess.Id))"
-
-    Pop-Location
-
     Write-Host ""
     Write-Success "Development environment is running!"
     Write-Host ""
@@ -211,20 +169,19 @@ SECRET_KEY=dev-secret-key-change-in-production
     Write-Host "http://localhost:8080" -ForegroundColor Green
     Write-Host "  Controller API: " -NoNewline
     Write-Host "http://localhost:8080/docs" -ForegroundColor Green
-    Write-Host "  Agent: " -NoNewline
-    Write-Host "Running locally" -ForegroundColor Green
     Write-Host ""
-    Write-Warning "Press Ctrl+C to stop all services"
+    Write-Info "Note: Only controller is running in local dev mode."
+    Write-Host "Use " -NoNewline
+    Write-Host ".\dev-docker.ps1" -ForegroundColor Yellow -NoNewline
+    Write-Host " to run both controller and agent in Docker containers."
+    Write-Host ""
+    Write-Warning "Press Ctrl+C to stop the controller"
     Write-Host ""
 
-    # Wait for processes to exit or user interrupt
+    # Wait for controller process to exit or user interrupt
     while ($true) {
         if ($script:ControllerProcess.HasExited) {
             Write-Error "Controller process exited unexpectedly"
-            break
-        }
-        if ($script:AgentProcess.HasExited) {
-            Write-Error "Agent process exited unexpectedly"
             break
         }
         Start-Sleep -Seconds 1

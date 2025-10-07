@@ -4,16 +4,16 @@ DeployBot - Agent-Based Deployment System
 Quick Start:
 -----------
 
-1. Local Development (Windows):
+1. Local Development (Windows) - Controller Only:
    .\dev-run.ps1
 
-2. Docker Development (Windows):
+2. Docker Development (Windows) - Controller + Agent:
    .\dev-docker.ps1
 
-3. Local Development (Linux/macOS):
+3. Local Development (Linux/macOS) - Controller Only:
    ./dev-run.sh
 
-4. Docker Development (Linux/macOS):
+4. Docker Development (Linux/macOS) - Controller + Agent:
    ./dev-docker.sh
 
 Services:
@@ -37,21 +37,35 @@ Project Structure:
 -----------------
 controller/       - Python FastAPI controller
 agent/           - Go agent binary
-dev-run.ps1      - Windows local development script
-dev-docker.ps1   - Windows Docker development script
-dev-run.sh       - Linux/macOS local development script
-dev-docker.sh    - Linux/macOS Docker development script
+dev-run.ps1      - Windows controller-only development script
+dev-docker.ps1   - Windows full-stack Docker development script
+dev-run.sh       - Linux/macOS controller-only development script
+dev-docker.sh    - Linux/macOS full-stack Docker development script
+
+Development Modes:
+-----------------
+Local Dev: Runs only the controller locally for quick development.
+           Agents can be installed separately using the install.sh script.
+
+Docker Dev: Runs both controller and agent in Docker containers
+            for full-stack testing and development.
 
 Requirements:
 ------------
-Windows:
+Windows (Local):
 - PowerShell 5.1 or later
 - Python 3.8+
-- Go 1.19+
+- Docker (for install script serving)
+
+Windows (Docker):
+- PowerShell 5.1 or later
 - Docker Desktop
 
-Linux/macOS:
+Linux/macOS (Local):
 - Bash
 - Python 3.8+
-- Go 1.19+
+- Docker (for install script serving)
+
+Linux/macOS (Docker):
+- Bash
 - Docker & Docker Compose

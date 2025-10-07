@@ -104,6 +104,12 @@ class HostMetrics(BaseModel):
 	disk_free_gb: Optional[float] = None
 
 
+class AgentMetricSample(BaseModel):
+	"""Historical metrics snapshot for an agent"""
+	recorded_at: datetime
+	metrics: HostMetrics
+
+
 class InventoryResource(BaseModel):
 	"""Running container/process inventory item reported by agent"""
 	name: str
@@ -462,6 +468,7 @@ class AgentInteractionRequest(BaseModel):
 	command: str
 	arguments: List[str] = Field(default_factory=list)
 	environment: Dict[str, str] = Field(default_factory=dict)
+	working_dir: Optional[str] = None
 	timeout_seconds: int = Field(default=30)
 	expect_response: bool = Field(default=True, description="Wait for command response")
 

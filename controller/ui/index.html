@@ -1,118 +1,3616 @@
 <!DOCTYPE html>
-<html lang='en' data-theme='light'>
+<html lang="en">
 <head>
-<meta charset='UTF-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1.0'>
-<title>DeployBot Control Center</title>
-<style>
-:root{--bg:#f4f6fb;--surface:#fff;--surface2:#edf1fb;--border:#d5d9e6;--text:#1f2434;--muted:#5b6272;--brand:#2563eb;--accent:#7c3aed;--shadow:0 12px 28px rgba(15,23,42,.08);} [data-theme='dark']{--bg:#0f172a;--surface:#16213b;--surface2:#1f2a42;--border:#283358;--text:#f8fafc;--muted:#96a3c3;--brand:#3b82f6;--accent:#8b5cf6;--shadow:0 18px 32px rgba(0,0,0,.45);} *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;} body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;} .shell{display:flex;width:100%;} aside{width:230px;background:linear-gradient(155deg,var(--brand)0%,var(--accent)100%);color:#fff;display:flex;flex-direction:column;gap:22px;padding:26px 20px;} aside .brand{font-weight:600;font-size:1.1rem;} aside nav{display:grid;gap:8px;} aside a{text-decoration:none;color:#eef2ff;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.08);transition:.2s;} aside a:hover{background:rgba(255,255,255,.16);transform:translateX(4px);} .toggle{margin-top:auto;display:flex;justify-content:space-between;align-items:center;font-size:.9rem;} .switch{position:relative;width:44px;height:22px;display:inline-block;} .switch input{opacity:0;width:0;height:0;} .switch span{position:absolute;inset:0;background:rgba(255,255,255,.4);border-radius:14px;transition:.2s;} .switch span:before{content:'';position:absolute;height:18px;width:18px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.2s;} .switch input:checked+span{background:rgba(0,0,0,.3);} .switch input:checked+span:before{transform:translateX(20px);} main{flex:1;padding:28px 38px;display:flex;flex-direction:column;gap:20px;} .top{display:flex;flex-direction:column;gap:14px;} .top h1{font-size:1.85rem;font-weight:600;} .tabs{display:flex;flex-wrap:wrap;gap:9px;} .tabs button{padding:7px 15px;border-radius:999px;border:1px solid transparent;background:var(--surface2);color:var(--muted);font-weight:600;cursor:pointer;} .tabs button.active{background:linear-gradient(120deg,var(--brand)0%,var(--accent)100%);color:#fff;box-shadow:0 6px 16px rgba(37,99,235,.25);} button.primary{background:linear-gradient(120deg,var(--brand)0%,var(--accent)100%);color:#fff;border:none;border-radius:10px;padding:9px 15px;cursor:pointer;box-shadow:0 8px 18px rgba(37,99,235,.2);} button.muted{border:none;border-radius:10px;padding:9px 15px;background:var(--surface2);color:var(--text);cursor:pointer;} button.outline{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:10px;padding:8px 14px;} section.panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:24px 26px;gap:18px;flex-direction:column;} section.panel.visible{display:flex;} .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:15px;} .stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;} .stat h3{font-size:.78rem;text-transform:uppercase;color:var(--muted);} .stat strong{font-size:1.5rem;} .small{font-size:.8rem;color:var(--muted);} .grid{display:grid;gap:14px;} .card{border:1px solid var(--border);border-radius:14px;padding:15px 17px;background:var(--surface);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;} label{font-size:.78rem;font-weight:600;color:var(--muted);} input,textarea,select{padding:9px 11px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);} textarea{resize:vertical;} .form-two{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));} .agent-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));} .agent-card{border-style:dashed;} .agent-card.drag-target{border-color:var(--brand);background:rgba(37,99,235,.1);} .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:.7rem;text-transform:uppercase;letter-spacing:.03em;background:var(--surface2);color:var(--muted);} .badge.green{background:rgba(16,185,129,.14);color:#047857;} .badge.blue{background:rgba(37,99,235,.14);color:#1d4ed8;} .badge.orange{background:rgba(245,158,11,.16);color:#b45309;} .badge.red{background:rgba(220,38,38,.16);color:#b91c1c;} .log-stream{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;font-family:'Fira Code',monospace;font-size:.82rem;max-height:330px;overflow:auto;} .toast{position:fixed;bottom:22px;right:22px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;box-shadow:var(--shadow);opacity:0;transform:translateY(12px);transition:opacity .2s ease,transform .2s ease;} .toast.show{opacity:1;transform:translateY(0);} .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:40;} .modal.active{display:flex;} .modal-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:22px 24px;width:min(520px,92vw);display:flex;flex-direction:column;gap:16px;} @media(max-width:900px){body{flex-direction:column;}aside{width:100%;flex-direction:row;align-items:center;justify-content:space-between;padding:20px;}aside nav{display:none;}main{padding:24px 18px;}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeployBot Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --azure-blue: #0078d4;
+            --azure-blue-hover: #106ebe;
+            --azure-blue-light: #e1f5fe;
+            --azure-gray-50: #faf9f8;
+            --azure-gray-100: #f3f2f1;
+            --azure-gray-200: #edebe9;
+            --azure-gray-300: #e1dfdd;
+            --azure-gray-400: #d2d0ce;
+            --azure-gray-500: #8a8886;
+            --azure-gray-600: #605e5c;
+            --azure-gray-700: #323130;
+            --azure-success: #107c10;
+            --azure-warning: #ffb900;
+            --azure-error: #d13438;
+            --azure-info: #00bcf2;
+            --azure-purple: #5c2d91;
+        }
+
+        body {
+            font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+            background: var(--azure-gray-50);
+            color: var(--azure-gray-700);
+            line-height: 1.5;
+        }
+
+        /* Top Navigation Bar */
+        .top-nav {
+            background: white;
+            border-bottom: 1px solid var(--azure-gray-200);
+            height: 48px;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            color: var(--azure-gray-700);
+            font-size: 15px;
+        }
+
+        .nav-brand-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--azure-blue);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .nav-items {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+            align-items: center;
+        }
+
+        .nav-button {
+            background: transparent;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--azure-gray-600);
+            font-size: 13px;
+            font-weight: 400;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-button:hover {
+            background: var(--azure-gray-100);
+            color: var(--azure-gray-700);
+        }
+
+        .nav-button.primary {
+            background: var(--azure-blue);
+            color: white;
+        }
+
+        .nav-button.primary:hover {
+            background: var(--azure-blue-hover);
+        }
+
+        .ai-status-badge {
+            background: var(--azure-success);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ai-status-dot {
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Container with Sidebar */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px;
+            display: flex;
+            gap: 24px;
+        }
+
+        .main-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .workflow-sidebar {
+            width: 320px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 80px;
+            height: fit-content;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+
+        .workflow-sidebar.hidden {
+            display: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 200;
+            max-width: 360px;
+        }
+
+        .toast {
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid var(--azure-blue);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            padding: 12px 16px;
+            color: var(--azure-gray-700);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            animation: slide-in 0.25s ease-out;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .toast-message {
+            font-size: 12px;
+            color: var(--azure-gray-600);
+        }
+
+        .toast.success { border-color: var(--azure-success); }
+        .toast.error { border-color: var(--azure-error); }
+        .toast.info { border-color: var(--azure-info); }
+        .toast.warning { border-color: var(--azure-warning); }
+
+        .toast.hidden {
+            opacity: 0;
+            transform: translateY(-8px);
+        }
+
+        @keyframes slide-in {
+            from {
+                opacity: 0;
+                transform: translate3d(20px, 0, 0);
+            }
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0);
+            }
+        }
+
+        /* Docker deployment builder */
+        .deploy-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+        }
+
+        .template-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .template-search input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--azure-gray-300);
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .template-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 520px;
+            overflow-y: auto;
+        }
+
+        .template-card {
+            border: 1px solid var(--azure-gray-200);
+            border-radius: 6px;
+            padding: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .template-card:hover {
+            border-color: var(--azure-blue);
+            box-shadow: 0 6px 16px rgba(0, 120, 212, 0.12);
+        }
+
+        .template-card.active {
+            border-color: var(--azure-blue);
+            box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+            background: var(--azure-blue-light);
+        }
+
+        .template-card h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--azure-gray-700);
+        }
+
+        .template-card p {
+            font-size: 12px;
+            color: var(--azure-gray-600);
+        }
+
+        .template-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .template-tag {
+            font-size: 11px;
+            padding: 4px 8px;
+            background: var(--azure-gray-200);
+            border-radius: 12px;
+            color: var(--azure-gray-600);
+        }
+
+        .form-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .form-section {
+            border: 1px solid var(--azure-gray-200);
+            border-radius: 6px;
+            padding: 16px;
+            background: #fbfbfb;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .section-header {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--azure-gray-700);
+        }
+
+        .section-subtitle {
+            font-size: 12px;
+            color: var(--azure-gray-500);
+        }
+
+        .field-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .field-grid.two {
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+
+        .field-grid.three {
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        }
+
+        .inline-checkboxes {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .inline-checkboxes label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--azure-gray-600);
+        }
+
+        .list-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .list-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) auto;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: white;
+            border: 1px solid var(--azure-gray-200);
+            border-radius: 4px;
+        }
+
+        .list-row input,
+        .list-row select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--azure-gray-300);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .list-row .remove-row {
+            background: transparent;
+            border: none;
+            color: var(--azure-error);
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .list-row .checkbox-inline {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--azure-gray-600);
+        }
+
+        .section-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .empty-hint {
+            font-size: 12px;
+            color: var(--azure-gray-500);
+            padding: 8px;
+            background: white;
+            border: 1px dashed var(--azure-gray-300);
+            border-radius: 4px;
+        }
+
+        .ghost-button {
+            background: transparent;
+            border: 1px dashed var(--azure-gray-300);
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            color: var(--azure-blue);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .ghost-button:hover {
+            border-color: var(--azure-blue);
+            background: rgba(0, 120, 212, 0.08);
+        }
+
+        .health-check-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+        }
+
+        @media (max-width: 1180px) {
+            .deploy-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .template-column {
+                order: 2;
+            }
+
+            .form-column {
+                order: 1;
+            }
+        }
+
+        .workflow-panel {
+            background: white;
+            border: 1px solid var(--azure-gray-300);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .workflow-panel.spaced {
+            margin-top: 16px;
+        }
+
+        .workflow-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--azure-gray-300);
+            background: var(--azure-gray-50);
+        }
+
+        .workflow-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--azure-gray-700);
+            margin-bottom: 4px;
+        }
+
+        .workflow-description {
+            font-size: 12px;
+            color: var(--azure-gray-500);
+        }
+
+        .workflow-steps {
+            padding: 12px;
+        }
+
+        .workflow-step {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border: 1px solid var(--azure-gray-300);
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .workflow-step.pending {
+            background: var(--azure-gray-50);
+            border-color: var(--azure-gray-300);
+        }
+
+        .workflow-step.in-progress {
+            background: #e3f2fd;
+            border-color: var(--azure-blue);
+            box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+        }
+
+        .workflow-step.completed {
+            background: #e8f5e9;
+            border-color: #4caf50;
+        }
+
+        .workflow-step.failed {
+            background: #ffebee;
+            border-color: #f44336;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .step-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .step-icon.pending {
+            background: var(--azure-gray-300);
+            color: white;
+        }
+
+        .step-icon.in-progress {
+            background: var(--azure-blue);
+            color: white;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .step-icon.completed {
+            background: #4caf50;
+            color: white;
+        }
+
+        .step-icon.failed {
+            background: #f44336;
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .step-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--azure-gray-700);
+            flex: 1;
+        }
+
+        .step-description {
+            font-size: 12px;
+            color: var(--azure-gray-500);
+            margin-left: 28px;
+        }
+
+        .workflow-actions {
+            padding: 12px 16px;
+            border-top: 1px solid var(--azure-gray-300);
+            display: flex;
+            gap: 8px;
+        }
+
+        .workflow-btn {
+            flex: 1;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+
+        .workflow-btn-approve {
+            background: var(--azure-blue);
+            color: white;
+        }
+
+        .workflow-btn-approve:hover {
+            background: #005a9e;
+        }
+
+        .workflow-btn-reject {
+            background: var(--azure-gray-200);
+            color: var(--azure-gray-700);
+        }
+
+        .workflow-btn-reject:hover {
+            background: var(--azure-gray-300);
+        }
+
+        .workflow-btn-cancel {
+            background: #f44336;
+            color: white;
+        }
+
+        .workflow-btn-cancel:hover {
+            background: #d32f2f;
+        }
+
+        .workflow-selector {
+            padding: 16px;
+            border-bottom: 1px solid var(--azure-gray-300);
+        }
+
+        .workflow-select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--azure-gray-300);
+            border-radius: 4px;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .workflow-start-btn {
+            width: 100%;
+            padding: 10px;
+            background: var(--azure-blue);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .workflow-start-btn:hover {
+            background: #005a9e;
+        }
+
+        /* Page Header */
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--azure-gray-700);
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 13px;
+            color: var(--azure-gray-500);
+        }
+
+        /* Quick Actions Bar */
+        .quick-actions {
+            background: white;
+            border: 1px solid var(--azure-gray-200);
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .quick-actions-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--azure-gray-600);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .quick-action-btn {
+            background: var(--azure-gray-50);
+            border: 1px solid var(--azure-gray-300);
+            padding: 12px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--azure-gray-700);
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quick-action-btn:hover {
+            background: var(--azure-gray-100);
+            border-color: var(--azure-blue);
+            color: var(--azure-blue);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .grid-full {
+            grid-column: 1 / -1;
+        }
+
+        /* Card Component */
+        .card {
+            background: white;
+            border: 1px solid var(--azure-gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--azure-gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--azure-gray-700);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid var(--azure-gray-200);
+            border-radius: 4px;
+            padding: 20px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--azure-blue);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--azure-gray-500);
+            font-weight: 500;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-change.positive {
+            color: var(--azure-success);
+        }
+
+        .stat-change.negative {
+            color: var(--azure-error);
+        }
+
+        /* List Items */
+        .list-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--azure-gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.15s;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item:hover {
+            background: var(--azure-gray-50);
+        }
+
+        .list-item-content {
+            flex: 1;
+        }
+
+        .list-item-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--azure-gray-700);
+            margin-bottom: 4px;
+        }
+
+        .list-item-meta {
+            font-size: 12px;
+            color: var(--azure-gray-500);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            gap: 6px;
+        }
+
+        .badge-success {
+            background: #dff6dd;
+            color: var(--azure-success);
+        }
+
+        .badge-running {
+            background: var(--azure-blue-light);
+            color: var(--azure-blue);
+        }
+
+        .badge-pending {
+            background: #fff4ce;
+            color: #ca5010;
+        }
+
+        .badge-failed {
+            background: #fde7e9;
+            color: var(--azure-error);
+        }
+
+        .badge-warning {
+            background: #fff4ce;
+            color: var(--azure-warning);
+        }
+
+        .badge-info {
+            background: #cff4fc;
+            color: #0078d4;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--azure-gray-500);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        .empty-state-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--azure-gray-600);
+        }
+
+        .empty-state-text {
+            font-size: 13px;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--azure-gray-700);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--azure-gray-400);
+            border-radius: 2px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--azure-blue);
+            box-shadow: 0 0 0 1px var(--azure-blue);
+        }
+
+        /* Buttons */
+        .button {
+            background: var(--azure-blue);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 2px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .button:hover {
+            background: var(--azure-blue-hover);
+        }
+
+        .button:active {
+            transform: scale(0.98);
+        }
+
+        .button-secondary {
+            background: white;
+            color: var(--azure-gray-700);
+            border: 1px solid var(--azure-gray-400);
+        }
+
+        .button-secondary:hover {
+            background: var(--azure-gray-50);
+        }
+
+        .button-small {
+            padding: 4px 12px;
+            font-size: 13px;
+        }
+
+        .button-full {
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* AI Chat Widget */
+        .ai-chat-fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            background: var(--azure-blue);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,120,212,0.4);
+            transition: all 0.3s;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-chat-fab:hover {
+            background: var(--azure-blue-hover);
+            transform: scale(1.1);
+        }
+
+        .ai-chat-widget {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 420px;
+            height: 600px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+            border: 1px solid var(--azure-gray-200);
+        }
+
+        .ai-chat-widget.open {
+            display: flex;
+        }
+
+        .ai-chat-header {
+            background: var(--azure-blue);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-chat-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-chat-close {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            font-size: 18px;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .ai-chat-close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .ai-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: var(--azure-gray-50);
+        }
+
+        .ai-message {
+            padding: 10px 14px;
+            border-radius: 6px;
+            max-width: 85%;
+            animation: slideIn 0.2s ease;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ai-message.user {
+            background: var(--azure-blue);
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .ai-message.assistant {
+            background: white;
+            color: var(--azure-gray-700);
+            align-self: flex-start;
+            border: 1px solid var(--azure-gray-200);
+        }
+
+        .ai-message.system {
+            background: var(--azure-blue-light);
+            color: var(--azure-blue);
+            align-self: center;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .ai-typing {
+            display: flex;
+            gap: 4px;
+            padding: 10px 14px;
+            background: white;
+            border-radius: 6px;
+            width: fit-content;
+            border: 1px solid var(--azure-gray-200);
+        }
+
+        .ai-typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--azure-gray-400);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .ai-typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .ai-typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        .ai-chat-input-container {
+            padding: 16px;
+            border-top: 1px solid var(--azure-gray-200);
+            display: flex;
+            gap: 8px;
+            background: white;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .ai-chat-input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--azure-gray-400);
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .ai-chat-input:focus {
+            outline: none;
+            border-color: var(--azure-blue);
+        }
+
+        .ai-send-btn {
+            background: var(--azure-blue);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ai-send-btn:hover {
+            background: var(--azure-blue-hover);
+        }
+
+        .ai-voice-btn {
+            background: white;
+            color: var(--azure-error);
+            border: 1px solid var(--azure-gray-400);
+            border-radius: 4px;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ai-voice-btn:hover {
+            background: var(--azure-gray-50);
+            border-color: var(--azure-error);
+        }
+
+        .ai-voice-btn.recording {
+            background: var(--azure-error);
+            color: white;
+            animation: pulse-recording 1.5s infinite;
+        }
+
+        @keyframes pulse-recording {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Suggestion Buttons */
+        .ai-suggestions {
+            padding: 12px 16px;
+            border-top: 1px solid var(--azure-gray-200);
+            background: var(--azure-gray-50);
+            display: none;
+        }
+
+        .ai-suggestions.show {
+            display: block;
+        }
+
+        .ai-suggestions-title {
+            font-size: 11px;
+            color: var(--azure-gray-500);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .ai-suggestions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .ai-suggestion-btn {
+            background: white;
+            border: 1px solid var(--azure-gray-300);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--azure-gray-700);
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: left;
+        }
+
+        .ai-suggestion-btn:hover {
+            background: var(--azure-blue-light);
+            border-color: var(--azure-blue);
+            color: var(--azure-blue);
+        }
+
+        /* Input Prompt Box */
+        .ai-input-prompt {
+            padding: 12px 16px;
+            background: var(--azure-blue-light);
+            border-top: 1px solid var(--azure-blue);
+            display: none;
+            font-size: 13px;
+            color: var(--azure-blue);
+        }
+
+        .ai-input-prompt.show {
+            display: block;
+        }
+
+        /* Workflow Cards in Chat */
+        .workflow-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 12px 0;
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .workflow-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .workflow-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .workflow-card-icon {
+            font-size: 32px;
+        }
+
+        .workflow-card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .workflow-card-description {
+            font-size: 14px;
+            opacity: 0.95;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .workflow-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .workflow-card-steps {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .workflow-card-cta {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .workflow-card-cta:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .workflow-card.register {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .workflow-card.deploy {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .workflow-card.troubleshoot {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .workflow-card.health {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .workflow-progress {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+        }
+
+        .workflow-progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .workflow-progress-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--azure-gray-700);
+        }
+
+        .workflow-progress-badge {
+            background: var(--azure-blue);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .workflow-progress-bar {
+            background: var(--azure-gray-200);
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .workflow-progress-fill {
+            background: var(--azure-blue);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        /* Quick Action Buttons */
+        .quick-actions-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .quick-action-btn {
+            background: linear-gradient(135deg, var(--azure-blue) 0%, #0055aa 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .quick-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 120, 212, 0.3);
+        }
+
+        .quick-action-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .quick-action-btn.secondary {
+            background: linear-gradient(135deg, var(--azure-gray-500) 0%, var(--azure-gray-600) 100%);
+        }
+
+        .quick-action-btn.secondary:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .quick-action-btn.danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+
+        .quick-action-btn.danger:hover {
+            box-shadow: 0 4px 8px rgba(238, 90, 111, 0.3);
+        }
+
+        .quick-action-btn.success {
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+        }
+
+        .quick-action-btn.success:hover {
+            box-shadow: 0 4px 8px rgba(55, 178, 77, 0.3);
+        }
+
+        /* AI Insights Panel */
+        .insights-panel {
+            background: white;
+            border: 1px solid var(--azure-gray-200);
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .insights-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--azure-gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .insights-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--azure-gray-700);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .insights-body {
+            padding: 16px 20px;
+        }
+
+        .insight-item {
+            padding: 12px;
+            border-left: 3px solid;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .insight-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .insight-item.info {
+            background: var(--azure-blue-light);
+            border-color: var(--azure-info);
+            color: var(--azure-gray-700);
+        }
+
+        .insight-item.warning {
+            background: #fff4ce;
+            border-color: var(--azure-warning);
+            color: var(--azure-gray-700);
+        }
+
+        .insight-item.error {
+            background: #fde7e9;
+            border-color: var(--azure-error);
+            color: var(--azure-gray-700);
+        }
+
+        .insight-item.success {
+            background: #dff6dd;
+            border-color: var(--azure-success);
+            color: var(--azure-gray-700);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--azure-gray-100);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--azure-gray-400);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--azure-gray-500);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--azure-gray-300);
+            border-top-color: var(--azure-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .ai-chat-widget {
+                width: calc(100vw - 40px);
+                right: 20px;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class='shell'>
-  <aside>
-    <div class='brand'>DeployBot</div>
-    <nav>
-      <a href='#dashboard' data-tab-link='dashboard'>Dashboard</a>
-      <a href='#deployments' data-tab-link='deployments'>Deployments</a>
-      <a href='#agents' data-tab-link='agents'>Agents</a>
-      <a href='#commands' data-tab-link='commands'>Commands</a>
-      <a href='#activity' data-tab-link='activity'>Activity</a>
-      <a href='#ai' data-tab-link='ai'>AI Assistant</a>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <div class="nav-brand-icon">DB</div>
+            <span>DeployBot Controller</span>
+        </div>
+        <div class="nav-items">
+            <div class="ai-status-badge">
+                <span class="ai-status-dot"></span>
+                AI Assistant
+            </div>
+            <a class="nav-button" href="/static/index_ai_enhanced.html">
+                <span>🤖</span> AI Workspace
+            </a>
+            <a class="nav-button" href="/agents.html">Agents</a>
+            <button class="nav-button" onclick="location.reload()">
+                <span>🔄</span> Refresh
+            </button>
+        </div>
     </nav>
-    <div class='toggle'><span>Dark mode</span><label class='switch'><input id='themeToggle' type='checkbox'><span></span></label></div>
-  </aside>
-  <main>
-    <div class='top'>
-      <h1>DeployBot Control Center</h1>
-      <div class='flex wrap'>
-        <nav class='tabs'>
-          <button data-tab='dashboard' class='active'>Dashboard</button>
-          <button data-tab='deployments'>Deployments</button>
-          <button data-tab='agents'>Agents</button>
-          <button data-tab='commands'>Commands</button>
-          <button data-tab='activity'>Activity</button>
-          <button data-tab='ai'>AI Assistant</button>
-        </nav>
-        <button class='primary' id='refreshButton'>Refresh</button>
-      </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Main Content Area -->
+        <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">Monitor and manage your deployments</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-agents">0</div>
+                <div class="stat-label">Active Agents</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-jobs">0</div>
+                <div class="stat-label">Total Jobs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-running">0</div>
+                <div class="stat-label">Running</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-success">0</div>
+                <div class="stat-label">Successful</div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <div class="quick-actions-title">Quick Actions</div>
+            <div class="quick-actions-grid">
+                <button class="quick-action-btn" onclick="askAI('Check all agents status')">
+                    <span>🤖</span> Check Agents
+                </button>
+                <button class="quick-action-btn" onclick="askAI('Show running jobs')">
+                    <span>▶️</span> Running Jobs
+                </button>
+                <button class="quick-action-btn" onclick="askAI('Show recent failures')">
+                    <span>⚠️</span> Recent Failures
+                </button>
+                <button class="quick-action-btn" onclick="askAI('Show deployment stats for last 24 hours')">
+                    <span>📊</span> 24h Stats
+                </button>
+            </div>
+        </div>
+
+        <!-- AI Insights Panel -->
+    <div class="insights-panel hidden" id="insights-panel">
+            <div class="insights-header">
+                <div class="insights-title">
+                    <span>💡</span> AI Insights
+                </div>
+                <button class="button button-small button-secondary" onclick="loadInsights()">
+                    Refresh
+                </button>
+            </div>
+            <div class="insights-body" id="insights-container">
+                <div class="empty-state">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="grid">
+            <!-- Agents Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>🖥️</span> Registered Agents
+                    </div>
+                    <div class="card-actions">
+                        <button class="button button-small button-secondary" onclick="loadAgents()">
+                            <span>🔄</span> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="agents-list">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🖥️</div>
+                            <div class="empty-state-title">No agents registered</div>
+                            <div class="empty-state-text">Agents will appear here once they connect</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Jobs Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>📦</span> Recent Jobs
+                    </div>
+                    <div class="card-actions">
+                        <button class="button button-small button-secondary" onclick="loadJobs()">
+                            <span>🔄</span> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="jobs-list">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📦</div>
+                            <div class="empty-state-title">No jobs yet</div>
+                            <div class="empty-state-text">Deployment jobs will appear here</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Docker Deployment Builder -->
+            <div class="card grid-full" id="docker-deploy-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>🚀</span> Docker Deployment Builder
+                    </div>
+                    <div class="card-actions">
+                        <button type="button" class="button button-small button-secondary" onclick="loadDockerTemplates(true)">
+                            <span>🔄</span> Refresh templates
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="deploy-grid">
+                        <div class="template-column">
+                            <div class="section-header">
+                                <div class="section-title">Templates</div>
+                                <div class="section-subtitle">Start from a curated image configuration</div>
+                            </div>
+                            <div class="template-search">
+                                <input type="search" id="template-search" placeholder="Search templates..." oninput="filterTemplates()">
+                            </div>
+                            <div id="docker-template-list" class="template-list">
+                                <div class="empty-state" id="template-empty-state">
+                                    <div class="empty-state-icon">📦</div>
+                                    <div class="empty-state-title">No templates loaded</div>
+                                    <div class="empty-state-text">Templates will appear here after they load</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-column">
+                            <form id="docker-deploy-form" onsubmit="handleDockerDeploy(event)">
+                                <div class="form-section">
+                                    <div class="section-header">
+                                        <div class="section-title">Deployment Target</div>
+                                        <div class="section-subtitle">Choose where and how the container should run.</div>
+                                    </div>
+                                    <div class="field-grid two">
+                                        <div class="form-group">
+                                            <label for="target-host">Target Host</label>
+                                            <input list="hosts-datalist" id="target-host" placeholder="Select or type hostname" required>
+                                            <datalist id="hosts-datalist"></datalist>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="deployment-name">Deployment Name</label>
+                                            <input type="text" id="deployment-name" placeholder="nginx-web">
+                                        </div>
+                                    </div>
+                                    <div class="field-grid two">
+                                        <div class="form-group">
+                                            <label for="deployment-tags">Tags</label>
+                                            <input type="text" id="deployment-tags" placeholder="prod,frontend">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="deployment-notes">Notes</label>
+                                            <input type="text" id="deployment-notes" placeholder="Optional note or purpose">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-section">
+                                    <div class="section-header">
+                                        <div class="section-title">Image Configuration</div>
+                                        <div class="section-subtitle">Define the container image and runtime options.</div>
+                                    </div>
+                                    <div class="field-grid two">
+                                        <div class="form-group">
+                                            <label for="image-name">Image</label>
+                                            <input type="text" id="image-name" placeholder="nginx" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="image-tag">Tag</label>
+                                            <input type="text" id="image-tag" placeholder="latest">
+                                        </div>
+                                    </div>
+                                    <div class="field-grid two">
+                                        <div class="form-group">
+                                            <label for="container-command">Command</label>
+                                            <input type="text" id="container-command" placeholder="Optional command override">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="container-entrypoint">Entrypoint</label>
+                                            <input type="text" id="container-entrypoint" placeholder="Optional entrypoint override">
+                                        </div>
+                                    </div>
+                                    <div class="field-grid two">
+                                        <div class="form-group">
+                                            <label for="container-workdir">Working Directory</label>
+                                            <input type="text" id="container-workdir" placeholder="/app">
+                                        </div>
+        
+                                        <div class="form-group">
+                                            <label for="restart-policy">Restart Policy</label>
+                                            <select id="restart-policy">
+                                                <option value="">Default</option>
+                                                <option value="no">No (never restart)</option>
+                                                <option value="on-failure">On failure</option>
+                                                <option value="always">Always</option>
+                                                <option value="unless-stopped">Unless stopped</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="inline-checkboxes">
+                                        <label>
+                                            <input type="checkbox" id="deployment-auto-redeploy">
+                                            Auto redeploy on new image
+                                        </label>
+                                        <label>
+                                            <input type="checkbox" id="deployment-pull-latest" checked>
+                                            Always pull latest image
+                                        </label>
+                                        <label>
+                                            <input type="checkbox" id="deployment-privileged">
+                                            Run in privileged mode
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="form-section">
+                                    <div class="section-header">
+                                        <div class="section-title">Environment Variables</div>
+                                        <div class="section-subtitle">Securely pass configuration settings to the container.</div>
+                                    </div>
+                                    <div class="list-rows" id="env-list"></div>
+                                    <div class="section-actions">
+                                        <button type="button" class="ghost-button" onclick="addEnvironmentRow()">＋ Add variable</button>
+                                    </div>
+                                </div>
+
+                                <div class="form-section">
+                                    <div class="section-header">
+                                        <div class="section-title">Port Mappings</div>
+                                        <div class="section-subtitle">Expose container ports to your network.</div>
+                                    </div>
+                                    <div class="list-rows" id="ports-list"></div>
+                                    <div class="section-actions">
+                                        <button type="button" class="ghost-button" onclick="addPortRow()">＋ Add port</button>
+                                    </div>
+                                </div>
+
+                                <div class="form-section">
+                                    <div class="section-header">
+                                        <div class="section-title">Volumes</div>
+                                        <div class="section-subtitle">Map host storage into the container.</div>
+                                    </div>
+                                    <div class="list-rows" id="volumes-list"></div>
+                                    <div class="section-actions">
+                                        <button type="button" class="ghost-button" onclick="addVolumeRow()">＋ Add volume</button>
+                                    </div>
+                                </div>
+
+                                <div class="form-section">
+                                    <div class="section-header">
+                                        <div class="section-title">Health Check</div>
+                                        <div class="section-subtitle">Monitor container readiness and liveness.</div>
+                                    </div>
+                                    <div class="field-grid two">
+                                        <div class="form-group">
+                                            <label for="health-type">Check Type</label>
+                                            <select id="health-type" onchange="syncHealthCheckVisibility()">
+                                                <option value="none">None</option>
+                                                <option value="http">HTTP</option>
+                                                <option value="tcp">TCP</option>
+                                                <option value="command">Command</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group" id="health-endpoint-group">
+                                            <label for="health-endpoint">Endpoint / Port</label>
+                                            <input type="text" id="health-endpoint" placeholder="/health or 8080">
+                                        </div>
+                                    </div>
+                                    <div class="health-check-grid" id="health-http-fields">
+                                        <div class="form-group">
+                                            <label for="health-expected">Expected Status</label>
+                                            <input type="number" id="health-expected" min="100" max="599" placeholder="200">
+                                        </div>
+                                    </div>
+                                    <div class="form-group hidden" id="health-command-group">
+                                        <label for="health-command">Command</label>
+                                        <input type="text" id="health-command" placeholder="pg_isready -U postgres">
+                                    </div>
+                                    <div class="health-check-grid">
+                                        <div class="form-group">
+                                            <label for="health-interval">Interval (s)</label>
+                                            <input type="number" id="health-interval" min="1" value="10">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="health-timeout">Timeout (s)</label>
+                                            <input type="number" id="health-timeout" min="1" value="5">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="health-retries">Retries</label>
+                                            <input type="number" id="health-retries" min="1" value="3">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="section-actions">
+                                    <button type="submit" class="button button-full">
+                                        <span>🚀</span> Deploy with Docker
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div><!-- Main Content End -->
+
+    <!-- Workflow Sidebar -->
+    <div class="workflow-sidebar hidden" id="workflow-sidebar">
+        <!-- Workflow Selector -->
+        <div class="workflow-panel">
+            <div class="workflow-selector">
+                <select class="workflow-select" id="workflow-type">
+                    <option value="">Select a workflow...</option>
+                    <option value="register_agent">Register New Agent</option>
+                    <option value="deploy_application">Deploy Application</option>
+                    <option value="troubleshoot_failure">Troubleshoot Failure</option>
+                    <option value="health_check">System Health Check</option>
+                </select>
+                <button class="workflow-start-btn" onclick="startSelectedWorkflow()">
+                    Start Workflow
+                </button>
+            </div>
+        </div>
+
+        <!-- Active Workflow Display -->
+    <div class="workflow-panel spaced hidden" id="active-workflow">
+            <div class="workflow-header">
+                <div class="workflow-title" id="workflow-name">Workflow</div>
+                <div class="workflow-description" id="workflow-desc">Description</div>
+            </div>
+            <div class="workflow-steps" id="workflow-steps">
+                <!-- Steps will be dynamically inserted here -->
+            </div>
+            <div class="workflow-actions hidden" id="workflow-actions">
+                <button class="workflow-btn workflow-btn-approve" onclick="approveCurrentStep()">
+                    ✓ Approve
+                </button>
+                <button class="workflow-btn workflow-btn-reject" onclick="rejectCurrentStep()">
+                    ✗ Reject
+                </button>
+            </div>
+            <div class="workflow-actions">
+                <button class="workflow-btn workflow-btn-cancel" onclick="cancelCurrentWorkflow()">
+                    Cancel Workflow
+                </button>
+            </div>
+        </div>
+    </div><!-- Workflow Sidebar End -->
+    </div><!-- Container End -->
+
+    <!-- AI Chat FAB -->
+    <button class="ai-chat-fab" onclick="toggleChat()" title="AI Assistant">
+        🤖
+    </button>
+
+    <!-- AI Chat Widget -->
+    <div class="ai-chat-widget" id="ai-chat-widget">
+        <div class="ai-chat-header">
+            <h3>
+                <span>🤖</span> AI Assistant
+            </h3>
+            <button class="ai-chat-close" onclick="toggleChat()">×</button>
+        </div>
+        <div class="ai-chat-messages" id="ai-messages">
+            <div class="ai-message system">
+                Welcome! I can help you manage deployments. Here are some things you can try:
+            </div>
+            <div class="ai-suggestions show">
+                <div class="ai-suggestions-title">Try these commands</div>
+                <div class="ai-suggestions-grid">
+                    <button class="ai-suggestion-btn" onclick="showWorkflowCards()">🚀 Show workflows</button>
+                    <button class="ai-suggestion-btn" onclick="askAI('Show all agents')">Show all agents</button>
+                    <button class="ai-suggestion-btn" onclick="askAI('List recent jobs')">List recent jobs</button>
+                    <button class="ai-suggestion-btn" onclick="askAI('Check system health')">Check system health</button>
+                </div>
+            </div>
+        </div>
+        <div class="ai-input-prompt" id="ai-input-prompt">
+            <!-- Dynamic input prompt will appear here -->
+        </div>
+        <div class="ai-suggestions" id="ai-suggestions-container">
+            <div class="ai-suggestions-title">Suggested actions</div>
+            <div class="ai-suggestions-grid" id="ai-suggestions-grid">
+                <!-- Dynamic suggestions will appear here -->
+            </div>
+        </div>
+        <div class="ai-chat-input-container">
+            <input 
+                type="text" 
+                class="ai-chat-input" 
+                id="ai-input" 
+                placeholder="Ask me anything..."
+                onkeypress="handleChatKeypress(event)"
+                onkeydown="handleChatKeydown(event)"
+            >
+            <button class="ai-voice-btn" id="voice-btn" onclick="toggleVoiceRecording()" title="Voice command">
+                🎤
+            </button>
+            <button class="ai-send-btn" onclick="sendMessage()" title="Send">
+                ➤
+            </button>
+        </div>
     </div>
-    <section class='panel visible' data-panel='dashboard'>
-      <div class='stat-grid'>
-        <div class='stat'><h3>Agents</h3><strong id='statAgents'>0</strong><span class='small' id='statAgentsDetail'>No agents connected</span></div>
-        <div class='stat'><h3>Running Jobs</h3><strong id='statRunning'>0</strong><span class='small' id='statRunningDetail'>All quiet</span></div>
-        <div class='stat'><h3>Deployments</h3><strong id='statDeployments'>0</strong><span class='small'>Templates ready</span></div>
-        <div class='stat'><h3>Commands</h3><strong id='statCommands'>0</strong><span class='small'>Reusable automations</span></div>
-      </div>
-      <div class='grid' id='insightsPreview'></div>
-    </section>
-    <section class='panel' data-panel='deployments'>
-      <div class='flex wrap' style='justify-content:space-between;align-items:center;'>
-        <h2>Deployment templates</h2>
-        <div class='flex'><button class='muted' data-show='image'>Container image</button><button class='muted' data-show='repo'>Repository</button></div>
-      </div>
-      <form class='form-grid' id='imageForm'>
-        <label for='imageName'>Template name</label><input id='imageName' required>
-        <label for='imageRef'>Image reference</label><input id='imageRef' placeholder='registry/org/app:tag' required>
-        <div class='form-two'><div><label for='imagePolicy'>Restart policy</label><select id='imagePolicy'><option value=''>Default</option><option value='always'>Always</option><option value='unless-stopped'>Unless stopped</option><option value='on-failure'>On failure</option></select></div><div><label for='healthType'>Health check</label><select id='healthType'><option value=''>Disabled</option><option value='http'>HTTP</option><option value='tcp'>TCP</option><option value='command'>Command</option></select></div></div>
-        <label for='healthEndpoint'>Health endpoint / command</label><input id='healthEndpoint'>
-        <label for='healthStatus'>Expected status</label><input id='healthStatus' type='number' value='200'>
-        <label for='imageEnv'>Environment (KEY=VALUE)</label><textarea id='imageEnv' rows='3'></textarea>
-        <label for='imagePorts'>Ports (name:container:host:protocol)</label><textarea id='imagePorts' rows='3'></textarea>
-        <label for='imageVolumes'>Volumes (host:container[:ro])</label><textarea id='imageVolumes' rows='3'></textarea>
-        <button type='submit' class='primary'>Save image template</button>
-      </form>
-      <form class='form-grid' id='repoForm' style='display:none'>
-        <label for='repoName'>Template name</label><input id='repoName' required>
-        <label for='repoUrl'>Repository</label><input id='repoUrl' placeholder='github.com/org/repo' required>
-        <div class='form-two'><div><label for='repoRef'>Git reference</label><input id='repoRef' value='main'></div><div><label for='repoStrategy'>Strategy</label><select id='repoStrategy'><option value=''>Auto</option><option value='compose'>Compose</option><option value='dockerfile'>Dockerfile</option><option value='image'>Image</option></select></div></div>
-        <label for='repoEnv'>Environment (KEY=VALUE)</label><textarea id='repoEnv' rows='3'></textarea>
-        <label for='repoPorts'>Ports (name:container:host:protocol)</label><textarea id='repoPorts' rows='3'></textarea>
-        <label for='repoVolumes'>Volumes (host:container[:ro])</label><textarea id='repoVolumes' rows='3'></textarea>
-        <label for='composeFile'>Compose file</label><input id='composeFile' placeholder='docker-compose.yml'>
-        <label for='dockerfilePath'>Dockerfile path</label><input id='dockerfilePath' placeholder='Dockerfile'>
-        <label for='launchScript'>Custom launch script</label><textarea id='launchScript' rows='4' placeholder='# Optional'></textarea>
-        <label class='flex'><input type='checkbox' id='repoAiToggle' checked><span class='small'>Use AI when launch script missing</span></label>
-        <button type='submit' class='primary'>Save repository template</button>
-      </form>
-      <div><h3>Templates</h3><div id='deploymentList' class='grid'></div><div class='empty' id='deploymentEmpty' style='display:none'>No templates yet.</div></div>
-    </section>
-    <section class='panel' data-panel='agents'>
-      <div class='flex wrap' style='justify-content:space-between;align-items:center;'>
-        <h2>Connected agents</h2><span class='small'>Drag commands onto an agent to execute them</span>
-      </div>
-      <div id='agentGrid' class='agent-grid'></div>
-      <div>
-        <h3>Live notifications</h3>
-        <form class='form-two' id='logStreamForm'><div><label for='logHost'>Host filter</label><input id='logHost'></div><div><label for='logApp'>App filter</label><input id='logApp'></div><button type='submit' class='primary'>Connect stream</button><button type='button' class='outline' id='stopStream'>Stop</button></form>
-        <div class='log-stream' id='logStream'></div>
-      </div>
-    </section>
-    <section class='panel' data-panel='commands'>
-      <div class='flex' style='justify-content:space-between;align-items:center;'>
-        <h2>Command library</h2><button class='primary' id='addCommandBtn'>Add command</button>
-      </div>
-      <div id='commandList' class='grid'></div><div class='empty' id='commandEmpty' style='display:none'>No commands yet.</div>
-    </section>
-    <section class='panel' data-panel='activity'>
-      <div class='flex' style='justify-content:space-between;align-items:center;'>
-        <h2>Recent activity</h2><div class='flex'><button class='muted' data-filter='all'>All</button><button class='muted' data-filter='running'>Running</button><button class='muted' data-filter='failed'>Failed</button></div>
-      </div>
-      <div id='jobList' class='grid'></div><div class='empty' id='jobEmpty' style='display:none'>No jobs yet.</div>
-    </section>
-    <section class='panel' data-panel='ai'>
-      <div class='flex' style='justify-content:space-between;align-items:center;'>
-        <h2>AI assistant</h2><button class='muted' id='refreshAI'>Refresh</button>
-      </div>
-      <div class='grid'>
-        <div class='card'><strong>Status</strong><div id='aiStatus' class='small'>Loading…</div></div>
-        <div class='card'><strong>Insights</strong><div id='aiInsights' class='grid'></div><div class='empty' id='aiInsightsEmpty' style='display:none'>No insights yet.</div></div>
-        <div class='card'><strong>Chat</strong><div id='aiChatLog' class='log-stream' style='max-height:220px'></div><form class='form-grid' id='aiChatForm'><label for='aiMessage'>Ask DeployBot</label><textarea id='aiMessage' rows='3' required></textarea><button type='submit' class='primary'>Send</button></form></div>
-      </div>
-    </section>
-  </main>
-</div>
-<div class='modal' id='deployModal'><div class='modal-card'><div class='flex' style='justify-content:space-between;align-items:center;'><strong id='deployModalTitle'>Deploy</strong><button class='muted' data-close='deployModal'>Close</button></div><div class='form-grid'><label for='deployHost'>Target agent</label><select id='deployHost'></select><label for='deployRef'>Git reference override</label><input id='deployRef'><label for='deployEnvOverride'>Environment overrides (KEY=VALUE)</label><textarea id='deployEnvOverride' rows='3'></textarea></div><div class='flex' style='justify-content:flex-end;'><button class='muted' data-close='deployModal'>Cancel</button><button class='primary' id='confirmDeploy'>Deploy</button></div></div></div>
-<div class='modal' id='commandModal'><div class='modal-card'><div class='flex' style='justify-content:space-between;align-items:center;'><strong>Create command</strong><button class='muted' data-close='commandModal'>Close</button></div><form class='form-grid' id='commandForm'><label for='commandName'>Name</label><input id='commandName' required><div class='form-two'><div><label for='commandRuntime'>Runtime</label><select id='commandRuntime'><option value='shell'>Shell</option><option value='python'>Python</option><option value='powershell'>PowerShell</option></select></div><div><label for='commandTags'>Tags</label><input id='commandTags'></div></div><label for='commandText'>Command</label><textarea id='commandText' rows='4' required></textarea><div class='flex' style='justify-content:flex-end;'><button type='button' class='muted' data-close='commandModal'>Cancel</button><button type='submit' class='primary'>Save</button></div></form></div></div>
-<div class='modal' id='scriptModal'><div class='modal-card' style='width:min(720px,95vw);'><div class='flex' style='justify-content:space-between;align-items:center;'><strong>Launch script</strong><button class='muted' data-close='scriptModal'>Close</button></div><pre id='scriptContent'></pre></div></div>
-<div class='toast' id='toast'></div>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let conversationHistory = [];
+        let messageHistory = [];
+        let historyIndex = -1;
+        let workflowDefinitions = [];
+        let dockerTemplates = [];
+        let filteredDockerTemplates = [];
+        let selectedDockerTemplate = null;
+
+        const workflowContextPrompts = {
+            hostname: 'Enter agent hostname:',
+            repository: 'Enter repository (e.g., myorg/app):',
+            ref: 'Enter ref (branch/tag/commit):'
+        };
+
+        function showToast(title, message, tone = 'info', timeout = 5000) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${tone}`;
+
+            const toastTitle = document.createElement('div');
+            toastTitle.className = 'toast-title';
+            toastTitle.textContent = title;
+
+            const toastMessage = document.createElement('div');
+            toastMessage.className = 'toast-message';
+            toastMessage.textContent = message;
+
+            toast.appendChild(toastTitle);
+            toast.appendChild(toastMessage);
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('hidden');
+                setTimeout(() => toast.remove(), 300);
+            }, timeout);
+        }
+
+        function createEmptyHint(message) {
+            const hint = document.createElement('div');
+            hint.className = 'empty-hint';
+            hint.textContent = message;
+            return hint;
+        }
+
+        function removeEmptyHint(container) {
+            const hint = container.querySelector('.empty-hint');
+            if (hint) {
+                hint.remove();
+            }
+        }
+
+        function appendRowElement(container, row, emptyMessage) {
+            removeEmptyHint(container);
+            container.appendChild(row);
+            const removeBtn = row.querySelector('.remove-row');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', () => {
+                    row.remove();
+                    if (!container.querySelector('.list-row')) {
+                        container.appendChild(createEmptyHint(emptyMessage));
+                    }
+                });
+            }
+        }
+
+        function initializeDockerBuilder() {
+            renderEnvironmentRows([]);
+            renderPortRows([]);
+            renderVolumeRows([]);
+            const imageTagInput = document.getElementById('image-tag');
+            if (imageTagInput && !imageTagInput.value) {
+                imageTagInput.value = 'latest';
+            }
+            document.getElementById('health-type').value = 'none';
+            document.getElementById('health-endpoint').value = '';
+            document.getElementById('health-expected').value = '';
+            document.getElementById('health-command').value = '';
+            document.getElementById('health-interval').value = 10;
+            document.getElementById('health-timeout').value = 5;
+            document.getElementById('health-retries').value = 3;
+        }
+
+        function buildEnvironmentRow(initial = {}) {
+            const row = document.createElement('div');
+            row.className = 'list-row';
+
+            const keyInput = document.createElement('input');
+            keyInput.type = 'text';
+            keyInput.placeholder = 'KEY';
+            keyInput.value = initial.key || '';
+            keyInput.dataset.field = 'key';
+
+            const valueInput = document.createElement('input');
+            valueInput.type = 'text';
+            valueInput.placeholder = 'value';
+            valueInput.value = initial.value || '';
+            valueInput.dataset.field = 'value';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'remove-row';
+            removeBtn.innerHTML = '&times;';
+
+            row.appendChild(keyInput);
+            row.appendChild(valueInput);
+            row.appendChild(removeBtn);
+            return row;
+        }
+
+        function addEnvironmentRow(initial = {}) {
+            const container = document.getElementById('env-list');
+            if (!container) return;
+            appendRowElement(container, buildEnvironmentRow(initial), 'No environment variables configured yet');
+        }
+
+        function renderEnvironmentRows(rows) {
+            const container = document.getElementById('env-list');
+            if (!container) return;
+            container.innerHTML = '';
+            if (!rows || rows.length === 0) {
+                container.appendChild(createEmptyHint('No environment variables configured yet'));
+                return;
+            }
+            rows.forEach(item => appendRowElement(container, buildEnvironmentRow(item), 'No environment variables configured yet'));
+        }
+
+        function buildPortRow(initial = {}) {
+            const row = document.createElement('div');
+            row.className = 'list-row';
+
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.placeholder = 'Name (optional)';
+            nameInput.value = initial.name || '';
+            nameInput.dataset.field = 'name';
+
+            const containerPortInput = document.createElement('input');
+            containerPortInput.type = 'number';
+            containerPortInput.placeholder = 'Container port';
+            containerPortInput.min = '1';
+            containerPortInput.max = '65535';
+            containerPortInput.value = initial.container_port ?? '';
+            containerPortInput.dataset.field = 'container_port';
+
+            const hostPortInput = document.createElement('input');
+            hostPortInput.type = 'number';
+            hostPortInput.placeholder = 'Host port';
+            hostPortInput.min = '1';
+            hostPortInput.max = '65535';
+            hostPortInput.value = initial.host_port ?? '';
+            hostPortInput.dataset.field = 'host_port';
+
+            const protocolSelect = document.createElement('select');
+            protocolSelect.dataset.field = 'protocol';
+            ['tcp', 'udp'].forEach(protocol => {
+                const option = document.createElement('option');
+                option.value = protocol;
+                option.textContent = protocol.toUpperCase();
+                protocolSelect.appendChild(option);
+            });
+            protocolSelect.value = initial.protocol || 'tcp';
+
+            const modeSelect = document.createElement('select');
+            modeSelect.dataset.field = 'publish_mode';
+            const modes = [
+                { value: 'host', label: 'Host' },
+                { value: 'ingress', label: 'Ingress' }
+            ];
+            modes.forEach(mode => {
+                const option = document.createElement('option');
+                option.value = mode.value;
+                option.textContent = mode.label;
+                modeSelect.appendChild(option);
+            });
+            modeSelect.value = initial.publish_mode || 'host';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'remove-row';
+            removeBtn.innerHTML = '&times;';
+
+            row.appendChild(nameInput);
+            row.appendChild(containerPortInput);
+            row.appendChild(hostPortInput);
+            row.appendChild(protocolSelect);
+            row.appendChild(modeSelect);
+            row.appendChild(removeBtn);
+            return row;
+        }
+
+        function addPortRow(initial = {}) {
+            const container = document.getElementById('ports-list');
+            if (!container) return;
+            appendRowElement(container, buildPortRow(initial), 'No ports mapped yet');
+        }
+
+        function renderPortRows(rows) {
+            const container = document.getElementById('ports-list');
+            if (!container) return;
+            container.innerHTML = '';
+            if (!rows || rows.length === 0) {
+                container.appendChild(createEmptyHint('No ports mapped yet'));
+                return;
+            }
+            rows.forEach(item => appendRowElement(container, buildPortRow(item), 'No ports mapped yet'));
+        }
+
+        function buildVolumeRow(initial = {}) {
+            const row = document.createElement('div');
+            row.className = 'list-row';
+
+            const sourceInput = document.createElement('input');
+            sourceInput.type = 'text';
+            sourceInput.placeholder = 'Host path or volume';
+            sourceInput.value = initial.source || '';
+            sourceInput.dataset.field = 'source';
+
+            const targetInput = document.createElement('input');
+            targetInput.type = 'text';
+            targetInput.placeholder = 'Container path';
+            targetInput.value = initial.target || '';
+            targetInput.dataset.field = 'target';
+
+            const readOnlyLabel = document.createElement('label');
+            readOnlyLabel.className = 'checkbox-inline';
+            const readOnlyInput = document.createElement('input');
+            readOnlyInput.type = 'checkbox';
+            readOnlyInput.checked = Boolean(initial.read_only);
+            readOnlyInput.dataset.field = 'read_only';
+            readOnlyLabel.appendChild(readOnlyInput);
+            readOnlyLabel.appendChild(document.createTextNode('Read-only'));
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'remove-row';
+            removeBtn.innerHTML = '&times;';
+
+            row.appendChild(sourceInput);
+            row.appendChild(targetInput);
+            row.appendChild(readOnlyLabel);
+            row.appendChild(removeBtn);
+            return row;
+        }
+
+        function addVolumeRow(initial = {}) {
+            const container = document.getElementById('volumes-list');
+            if (!container) return;
+            appendRowElement(container, buildVolumeRow(initial), 'No volumes mapped yet');
+        }
+
+        function renderVolumeRows(rows) {
+            const container = document.getElementById('volumes-list');
+            if (!container) return;
+            container.innerHTML = '';
+            if (!rows || rows.length === 0) {
+                container.appendChild(createEmptyHint('No volumes mapped yet'));
+                return;
+            }
+            rows.forEach(item => appendRowElement(container, buildVolumeRow(item), 'No volumes mapped yet'));
+        }
+
+        function collectEnvironmentRows() {
+            const container = document.getElementById('env-list');
+            if (!container) return {};
+            const rows = Array.from(container.querySelectorAll('.list-row'));
+            const env = {};
+            rows.forEach(row => {
+                const key = (row.querySelector('[data-field="key"]')?.value || '').trim();
+                const value = row.querySelector('[data-field="value"]')?.value || '';
+                if (key) {
+                    env[key] = value;
+                }
+            });
+            return env;
+        }
+
+        function collectPortRows() {
+            const container = document.getElementById('ports-list');
+            if (!container) return [];
+            const rows = Array.from(container.querySelectorAll('.list-row'));
+            return rows
+                .map(row => {
+                    const containerPortValue = row.querySelector('[data-field="container_port"]')?.value;
+                    const hostPortValue = row.querySelector('[data-field="host_port"]')?.value;
+                    const containerPort = parseInt(containerPortValue ?? '', 10);
+                    if (!Number.isFinite(containerPort)) {
+                        return null;
+                    }
+
+                    const portEntry = {
+                        container_port: containerPort,
+                        protocol: row.querySelector('[data-field="protocol"]')?.value || 'tcp',
+                        publish_mode: row.querySelector('[data-field="publish_mode"]')?.value || 'host'
+                    };
+
+                    const name = (row.querySelector('[data-field="name"]')?.value || '').trim();
+                    if (name) {
+                        portEntry.name = name;
+                    }
+
+                    const hostPort = parseInt(hostPortValue ?? '', 10);
+                    if (Number.isFinite(hostPort)) {
+                        portEntry.host_port = hostPort;
+                    }
+
+                    return portEntry;
+                })
+                .filter(Boolean);
+        }
+
+        function collectVolumeRows() {
+            const container = document.getElementById('volumes-list');
+            if (!container) return [];
+            const rows = Array.from(container.querySelectorAll('.list-row'));
+            return rows
+                .map(row => {
+                    const source = (row.querySelector('[data-field="source"]')?.value || '').trim();
+                    const target = (row.querySelector('[data-field="target"]')?.value || '').trim();
+                    if (!source || !target) {
+                        return null;
+                    }
+                    const readOnlyInput = row.querySelector('[data-field="read_only"]');
+                    return {
+                        source,
+                        target,
+                        read_only: readOnlyInput ? readOnlyInput.checked : false
+                    };
+                })
+                .filter(Boolean);
+        }
+
+        function slugifyName(name) {
+            return (name || '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/(^-|-$)/g, '')
+                .slice(0, 50);
+        }
+
+        function applyTemplateToForm(template) {
+            if (!template) return;
+
+            const { image, tag, environment, ports, volumes, health_check: healthCheck, name, description, tags } = template;
+
+            document.getElementById('image-name').value = image || '';
+            document.getElementById('image-tag').value = tag || 'latest';
+            document.getElementById('deployment-name').value = slugifyName(name || 'docker-deploy');
+            document.getElementById('deployment-tags').value = (tags || []).join(', ');
+            document.getElementById('deployment-notes').value = description || '';
+
+            renderEnvironmentRows(environment || []);
+            renderPortRows(ports || []);
+            renderVolumeRows(volumes || []);
+
+            if (healthCheck) {
+                document.getElementById('health-type').value = healthCheck.type || 'http';
+                document.getElementById('health-endpoint').value = healthCheck.endpoint || '';
+                document.getElementById('health-expected').value = healthCheck.expected_status ?? '';
+                document.getElementById('health-command').value = Array.isArray(healthCheck.command) ? healthCheck.command.join(' ') : '';
+                document.getElementById('health-interval').value = healthCheck.interval_seconds ?? 10;
+                document.getElementById('health-timeout').value = healthCheck.timeout_seconds ?? 5;
+                document.getElementById('health-retries').value = healthCheck.retries ?? 3;
+            } else {
+                document.getElementById('health-type').value = 'none';
+                document.getElementById('health-endpoint').value = '';
+                document.getElementById('health-expected').value = '';
+                document.getElementById('health-command').value = '';
+                document.getElementById('health-interval').value = 10;
+                document.getElementById('health-timeout').value = 5;
+                document.getElementById('health-retries').value = 3;
+            }
+
+            syncHealthCheckVisibility();
+        }
+
+        function renderDockerTemplates() {
+            const list = document.getElementById('docker-template-list');
+            if (!list) return;
+            list.innerHTML = '';
+
+            if (!filteredDockerTemplates.length) {
+                list.appendChild(createEmptyHint('No templates match your search yet.'));
+                return;
+            }
+
+            filteredDockerTemplates.forEach(template => {
+                const card = document.createElement('div');
+                card.className = 'template-card';
+                if (template.id === selectedDockerTemplate) {
+                    card.classList.add('active');
+                }
+                card.dataset.templateId = template.id;
+
+                const title = document.createElement('h4');
+                title.textContent = template.name;
+
+                const description = document.createElement('p');
+                description.textContent = template.description || 'Ready to deploy Docker image';
+
+                const meta = document.createElement('div');
+                meta.className = 'template-tags';
+                (template.tags || []).forEach(tag => {
+                    const tagPill = document.createElement('span');
+                    tagPill.className = 'template-tag';
+                    tagPill.textContent = tag;
+                    meta.appendChild(tagPill);
+                });
+
+                card.appendChild(title);
+                card.appendChild(description);
+                if (meta.children.length) {
+                    card.appendChild(meta);
+                }
+
+                card.addEventListener('click', () => selectDockerTemplate(template.id));
+                list.appendChild(card);
+            });
+        }
+
+        async function loadDockerTemplates(showToastOnSuccess = false) {
+            const list = document.getElementById('docker-template-list');
+            if (list) {
+                list.innerHTML = '';
+                list.appendChild(createEmptyHint('Loading templates...'));
+            }
+
+            try {
+                const response = await fetch('/v1/templates/docker');
+                if (!response.ok) {
+                    throw new Error('Failed to load Docker templates');
+                }
+                const data = await response.json();
+                dockerTemplates = Array.isArray(data) ? data : data.templates || [];
+                filteredDockerTemplates = [...dockerTemplates];
+                renderDockerTemplates();
+                if (showToastOnSuccess) {
+                    showToast('Templates refreshed', 'Docker image templates have been updated.', 'info');
+                }
+                if (!selectedDockerTemplate && dockerTemplates.length) {
+                    selectDockerTemplate(dockerTemplates[0].id);
+                }
+            } catch (error) {
+                console.error('Error loading docker templates:', error);
+                if (list) {
+                    list.innerHTML = '';
+                    const errorHint = createEmptyHint('Unable to load templates. Please try again later.');
+                    list.appendChild(errorHint);
+                }
+                showToast('Template error', error.message || 'Unable to load Docker templates', 'error');
+            }
+        }
+
+        function filterTemplates() {
+            const query = document.getElementById('template-search')?.value.trim().toLowerCase();
+            if (!query) {
+                filteredDockerTemplates = [...dockerTemplates];
+                renderDockerTemplates();
+                return;
+            }
+
+            filteredDockerTemplates = dockerTemplates.filter(template => {
+                const haystack = [
+                    template.name,
+                    template.description,
+                    template.category,
+                    ...(template.tags || [])
+                ]
+                    .filter(Boolean)
+                    .join(' ')
+                    .toLowerCase();
+                return haystack.includes(query);
+            });
+
+            renderDockerTemplates();
+        }
+
+        function selectDockerTemplate(templateId) {
+            selectedDockerTemplate = templateId;
+            const template = dockerTemplates.find(item => item.id === templateId);
+            renderDockerTemplates();
+            if (template) {
+                applyTemplateToForm(template);
+                showToast('Template applied', `${template.name} template loaded into the form.`, 'success', 3000);
+            }
+        }
+
+        function syncHealthCheckVisibility() {
+            const type = document.getElementById('health-type').value;
+            const endpointGroup = document.getElementById('health-endpoint-group');
+            const httpFields = document.getElementById('health-http-fields');
+            const commandGroup = document.getElementById('health-command-group');
+
+            if (type === 'none') {
+                endpointGroup.classList.add('hidden');
+            } else {
+                endpointGroup.classList.remove('hidden');
+                document.getElementById('health-endpoint').placeholder = type === 'tcp' ? 'Port (e.g. 8080)' : '/health';
+            }
+
+            if (type === 'http') {
+                httpFields.classList.remove('hidden');
+            } else {
+                httpFields.classList.add('hidden');
+            }
+
+            if (type === 'command') {
+                commandGroup.classList.remove('hidden');
+            } else {
+                commandGroup.classList.add('hidden');
+            }
+        }
+
+        function buildDeploymentPayload() {
+            const hostInput = document.getElementById('target-host');
+            const imageInput = document.getElementById('image-name');
+            const tagInput = document.getElementById('image-tag');
+
+            const host = hostInput.value.trim();
+            const image = imageInput.value.trim();
+
+            if (!host) {
+                throw new Error('Target host is required');
+            }
+            if (!image) {
+                throw new Error('Docker image is required');
+            }
+
+            const deploymentSpec = {
+                type: 'image',
+                image,
+                tag: tagInput.value.trim() || undefined,
+                command: document.getElementById('container-command').value.trim() || undefined,
+                entrypoint: document.getElementById('container-entrypoint').value.trim() || undefined,
+                workdir: document.getElementById('container-workdir').value.trim() || undefined,
+                environment: collectEnvironmentRows(),
+                ports: collectPortRows(),
+                volumes: collectVolumeRows(),
+                restart_policy: document.getElementById('restart-policy').value || undefined
+            };
+
+            if (!Object.keys(deploymentSpec.environment).length) {
+                delete deploymentSpec.environment;
+            }
+            if (!deploymentSpec.ports.length) {
+                delete deploymentSpec.ports;
+            }
+            if (!deploymentSpec.volumes.length) {
+                delete deploymentSpec.volumes;
+            }
+            if (!deploymentSpec.restart_policy) {
+                delete deploymentSpec.restart_policy;
+            }
+
+            const healthType = document.getElementById('health-type').value;
+            if (healthType !== 'none') {
+                const interval = parseInt(document.getElementById('health-interval').value || '10', 10);
+                const timeout = parseInt(document.getElementById('health-timeout').value || '5', 10);
+                const retries = parseInt(document.getElementById('health-retries').value || '3', 10);
+                const endpointValue = document.getElementById('health-endpoint').value.trim();
+
+                const healthConfig = {
+                    type: healthType,
+                    interval_seconds: Number.isFinite(interval) ? interval : 10,
+                    timeout_seconds: Number.isFinite(timeout) ? timeout : 5,
+                    retries: Number.isFinite(retries) ? retries : 3,
+                };
+
+                if (healthType === 'http') {
+                    if (endpointValue) healthConfig.endpoint = endpointValue;
+                    const expectedStatus = parseInt(document.getElementById('health-expected').value || '200', 10);
+                    if (Number.isFinite(expectedStatus)) {
+                        healthConfig.expected_status = expectedStatus;
+                    }
+                } else if (healthType === 'tcp') {
+                    if (endpointValue) {
+                        healthConfig.endpoint = endpointValue;
+                    }
+                } else if (healthType === 'command') {
+                    const commandValue = document.getElementById('health-command').value.trim();
+                    if (commandValue) {
+                        healthConfig.command = commandValue.split(/\s+/);
+                    }
+                }
+
+                deploymentSpec.health_check = healthConfig;
+            }
+
+            const metadata = {};
+            const deploymentName = document.getElementById('deployment-name').value.trim();
+            if (deploymentName) {
+                metadata.name = deploymentName;
+            }
+            const tagsInput = document.getElementById('deployment-tags').value;
+            const tags = tagsInput.split(',').map(tag => tag.trim()).filter(Boolean);
+            if (tags.length) {
+                metadata.tags = tags;
+            }
+
+            const notes = document.getElementById('deployment-notes').value.trim();
+            if (notes) {
+                metadata.notes = notes;
+            }
+
+            if (document.getElementById('deployment-auto-redeploy').checked) {
+                metadata.auto_redeploy = true;
+            }
+            metadata.pull_latest = document.getElementById('deployment-pull-latest').checked;
+            if (document.getElementById('deployment-privileged').checked) {
+                metadata.privileged = true;
+            }
+
+            if (selectedDockerTemplate) {
+                metadata.template_id = selectedDockerTemplate;
+            }
+
+            return {
+                host,
+                job_type: 'deploy',
+                metadata,
+                deployment: deploymentSpec,
+                strategy: 'image'
+            };
+        }
+
+        async function handleDockerDeploy(event) {
+            event.preventDefault();
+            try {
+                const payload = buildDeploymentPayload();
+                const hostValue = payload.host;
+                const response = await fetch('/v1/jobs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.json().catch(() => ({}));
+                    throw new Error(errorBody.detail || 'Failed to queue deployment job');
+                }
+
+                const result = await response.json();
+                addChatMessage('system', `✓ Deployment queued for ${payload.deployment.image} → ${hostValue}`);
+                showToast('Deployment queued', `Job ${result.job?.id || ''} created for ${hostValue}`, 'success');
+
+                document.getElementById('docker-deploy-form').reset();
+                initializeDockerBuilder();
+                document.getElementById('target-host').value = hostValue;
+                document.getElementById('image-tag').value = 'latest';
+                syncHealthCheckVisibility();
+                loadJobs();
+            } catch (error) {
+                console.error('Error creating deployment job:', error);
+                showToast('Deployment failed', error.message || 'Unable to create deployment job', 'error');
+            }
+        }
+
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadAgents();
+            loadJobs();
+            loadInsights();
+            loadWorkflowDefinitions();
+            initializeDockerBuilder();
+            loadDockerTemplates();
+            syncHealthCheckVisibility();
+            
+            // Auto-refresh every 5 seconds
+            setInterval(() => {
+                loadAgents();
+                loadJobs();
+            }, 5000);
+
+            // Refresh insights every 30 seconds
+            setInterval(loadInsights, 30000);
+        });
+
+        async function loadAgents() {
+            try {
+                const response = await fetch('/v1/hosts');
+                const data = await response.json();
+                
+                document.getElementById('stat-agents').textContent = data.hosts.length;
+                
+                const agentsList = document.getElementById('agents-list');
+                if (data.hosts.length === 0) {
+                    agentsList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🖥️</div>
+                            <div class="empty-state-title">No agents registered</div>
+                            <div class="empty-state-text">Agents will appear here once they connect</div>
+                        </div>
+                    `;
+                } else {
+                    agentsList.innerHTML = data.hosts.map(agent => {
+                        const lastSeen = new Date(agent.last_heartbeat);
+                        const now = new Date();
+                        const diffMinutes = Math.floor((now - lastSeen) / 60000);
+                        const isStale = diffMinutes > 5;
+                        
+                        return `
+                            <div class="list-item">
+                                <div class="list-item-content">
+                                    <div class="list-item-title">${agent.hostname}</div>
+                                    <div class="list-item-meta">
+                                        Last seen: ${diffMinutes === 0 ? 'just now' : `${diffMinutes}m ago`}
+                                    </div>
+                                </div>
+                                <span class="badge ${isStale ? 'badge-warning' : 'badge-success'}">
+                                    ${isStale ? '⚠️ Stale' : '✓ Active'}
+                                </span>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Error loading agents:', error);
+            }
+        }
+
+        async function loadJobs() {
+            try {
+                const response = await fetch('/v1/jobs');
+                const data = await response.json();
+                
+                document.getElementById('stat-jobs').textContent = data.jobs.length;
+                
+                const running = data.jobs.filter(j => j.status === 'running').length;
+                const successful = data.jobs.filter(j => j.status === 'completed').length;
+                
+                document.getElementById('stat-running').textContent = running;
+                document.getElementById('stat-success').textContent = successful;
+                
+                const jobsList = document.getElementById('jobs-list');
+                if (data.jobs.length === 0) {
+                    jobsList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📦</div>
+                            <div class="empty-state-title">No jobs yet</div>
+                            <div class="empty-state-text">Deployment jobs will appear here</div>
+                        </div>
+                    `;
+                } else {
+                    const recentJobs = data.jobs.slice(0, 10);
+                    jobsList.innerHTML = recentJobs.map(job => {
+                        const badgeClass = {
+                            'pending': 'badge-pending',
+                            'running': 'badge-running',
+                            'completed': 'badge-success',
+                            'failed': 'badge-failed'
+                        }[job.status] || 'badge-info';
+
+                        const statusIcon = {
+                            'pending': '⏳',
+                            'running': '▶️',
+                            'completed': '✓',
+                            'failed': '✗'
+                        }[job.status] || '•';
+                        
+                        return `
+                            <div class="list-item">
+                                <div class="list-item-content">
+                                    <div class="list-item-title">${job.repo} → ${job.hostname}</div>
+                                    <div class="list-item-meta">
+                                        Job #${job.id} • ${job.git_ref}
+                                    </div>
+                                </div>
+                                <span class="badge ${badgeClass}">
+                                    ${statusIcon} ${job.status}
+                                </span>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Error loading jobs:', error);
+            }
+        }
+
+        async function loadInsights() {
+            try {
+                const response = await fetch('/v1/ai/insights');
+                const data = await response.json();
+                
+                const insightsPanel = document.getElementById('insights-panel');
+                const insightsContainer = document.getElementById('insights-container');
+                
+                if (data.insights && data.insights.length > 0) {
+                    insightsPanel.style.display = 'block';
+                    insightsContainer.innerHTML = data.insights.map(insight => `
+                        <div class="insight-item ${insight.type}">
+                            ${insight.message}
+                        </div>
+                    `).join('');
+                } else {
+                    insightsPanel.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error loading insights:', error);
+            }
+        }
+
+        async function loadWorkflowDefinitions() {
+            try {
+                const response = await fetch('/v1/ai/workflows/definitions');
+                if (!response.ok) {
+                    throw new Error('Failed to load workflow definitions');
+                }
+
+                const data = await response.json();
+                workflowDefinitions = data.workflows || [];
+            } catch (error) {
+                console.error('Error loading workflow definitions:', error);
+                // Fallback to default definitions if API fails
+                workflowDefinitions = [
+                    { name: 'register_agent', description: 'Safely onboard a new deployment agent', required_context: ['hostname'] },
+                    { name: 'deploy_application', description: 'Deploy an application with validations', required_context: ['repository', 'ref'] },
+                    { name: 'troubleshoot_failure', description: 'Diagnose and remediate failed deployments', required_context: [] },
+                    { name: 'health_check', description: 'Run a system health review', required_context: [] }
+                ];
+            }
+
+            populateWorkflowSelector();
+        }
+
+        function populateWorkflowSelector() {
+            const select = document.getElementById('workflow-type');
+            if (!select) return;
+
+            const previousValue = select.value;
+            select.innerHTML = '<option value="">Select a workflow...</option>';
+
+            workflowDefinitions.forEach(def => {
+                const option = document.createElement('option');
+                option.value = def.name;
+                const label = `${formatWorkflowName(def.name)}${def.description ? ' — ' + def.description : ''}`;
+                option.textContent = label;
+                select.appendChild(option);
+            });
+
+            if (previousValue) {
+                select.value = previousValue;
+            }
+        }
+
+        function formatWorkflowName(name) {
+            return name.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+        }
+
+        async function handleDeploy(event) {
+            event.preventDefault();
+            
+            const repo = document.getElementById('repo').value;
+            const ref = document.getElementById('ref').value;
+            const host = document.getElementById('host').value;
+            
+            try {
+                const response = await fetch('/v1/deploy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repo, git_ref: ref, hostname: host })
+                });
+                
+                if (response.ok) {
+                    addChatMessage('system', `✓ Deployment job created for ${repo}@${ref} → ${host}`);
+                    document.getElementById('deploy-form').reset();
+                    setTimeout(loadJobs, 500);
+                } else {
+                    const error = await response.json();
+                    addChatMessage('system', `✗ Failed: ${error.detail || 'Unknown error'}`);
+                }
+            } catch (error) {
+                addChatMessage('system', `✗ Error: ${error.message}`);
+            }
+        }
+
+        // AI Chat Functions
+        function toggleChat() {
+            const widget = document.getElementById('ai-chat-widget');
+            const isOpening = !widget.classList.contains('open');
+            widget.classList.toggle('open');
+            
+            // Show welcome message with workflow cards on first open
+            if (isOpening) {
+                const messagesDiv = document.getElementById('ai-messages');
+                if (messagesDiv.children.length === 0) {
+                    addChatMessage('assistant', 'Hi! I\'m your DeployBot AI assistant. 🤖\n\nI can help you deploy applications, manage agents, troubleshoot issues, and more. Let\'s make DevOps simple!');
+                    setTimeout(() => showWorkflowCards(), 300);
+                }
+            }
+        }
+
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function handleChatKeydown(event) {
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (messageHistory.length > 0) {
+                    if (historyIndex < messageHistory.length - 1) {
+                        historyIndex++;
+                        document.getElementById('ai-input').value = messageHistory[historyIndex];
+                    }
+                }
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    document.getElementById('ai-input').value = messageHistory[historyIndex];
+                } else if (historyIndex === 0) {
+                    historyIndex = -1;
+                    document.getElementById('ai-input').value = '';
+                }
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('ai-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Handle special commands
+            if (message.toLowerCase() === 'show workflows' || message.toLowerCase() === 'workflows') {
+                addChatMessage('user', message);
+                addChatMessage('assistant', 'Here are the available workflows to help you:');
+                setTimeout(() => showWorkflowCards(), 100);
+                input.value = '';
+                return;
+            }
+            
+            // Add to message history for up/down arrow navigation
+            messageHistory.unshift(message);
+            if (messageHistory.length > 50) messageHistory.pop(); // Keep last 50 messages
+            historyIndex = -1;
+            
+            addChatMessage('user', message);
+            
+            // Update conversation history for context
+            conversationHistory.push({ role: 'user', content: message });
+            if (conversationHistory.length > 20) {
+                conversationHistory = conversationHistory.slice(-20); // Keep last 20 messages
+            }
+            
+            input.value = '';
+            
+            showTypingIndicator();
+            
+            try {
+                const response = await fetch('/v1/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        conversation_history: conversationHistory
+                    })
+                });
+                
+                removeTypingIndicator();
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addChatMessage('assistant', data.response, data.quick_actions);
+                    
+                    // Update conversation history with assistant response
+                    conversationHistory.push({ role: 'assistant', content: data.response });
+                    if (conversationHistory.length > 20) {
+                        conversationHistory = conversationHistory.slice(-20);
+                    }
+                    
+                    // Show suggestions if available
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        showSuggestions(data.suggestions);
+                    } else {
+                        hideSuggestions();
+                    }
+                    
+                    // Show input prompt if AI needs input
+                    if (data.needs_input && data.input_prompt) {
+                        showInputPrompt(data.input_prompt);
+                    } else {
+                        hideInputPrompt();
+                    }
+
+                    if (data.action_taken && data.data) {
+                        handleWorkflowAction(data.action_taken, data.data);
+                    }
+                    
+                    // Refresh data if AI performed actions
+                    setTimeout(() => {
+                        loadAgents();
+                        loadJobs();
+                        loadInsights();
+                    }, 500);
+                } else {
+                    const errorData = await response.json();
+                    const errorMsg = errorData.detail || 'Sorry, I encountered an error. Please try again.';
+                    addChatMessage('assistant', errorMsg);
+                    hideSuggestions();
+                    hideInputPrompt();
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                addChatMessage('assistant', 'Sorry, I could not connect to the AI service.');
+            }
+        }
+
+        function askAI(question) {
+            document.getElementById('ai-input').value = question;
+            const widget = document.getElementById('ai-chat-widget');
+            if (!widget.classList.contains('open')) {
+                toggleChat();
+            }
+            sendMessage();
+        }
+
+        function addChatMessage(role, content, quickActions = null) {
+            const messagesDiv = document.getElementById('ai-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-message ${role}`;
+            
+            // Check if content contains workflow trigger keywords and enhance display
+            if (role === 'assistant' && (content.includes('workflow') || content.includes('guide you'))) {
+                // Parse and enhance workflow references
+                messageDiv.innerHTML = enhanceWorkflowContent(content);
+            } else {
+                messageDiv.textContent = content;
+            }
+            
+            messagesDiv.appendChild(messageDiv);
+            
+            // Add quick action buttons if provided
+            if (quickActions && quickActions.length > 0) {
+                const actionsContainer = document.createElement('div');
+                actionsContainer.className = 'quick-actions-container';
+                
+                quickActions.forEach((action, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'quick-action-btn';
+                    btn.textContent = action.label;
+                    
+                    // Style buttons based on content/position
+                    if (action.label.includes('✅') || action.label.toLowerCase().includes('yes') || action.label.toLowerCase().includes('proceed')) {
+                        btn.classList.add('success');
+                    } else if (action.label.includes('❌') || action.label.toLowerCase().includes('no') || action.label.toLowerCase().includes('cancel')) {
+                        btn.classList.add('danger');
+                    } else if (index > 0) {
+                        btn.classList.add('secondary');
+                    }
+                    
+                    // Handle click - auto-send the action text
+                    btn.onclick = () => {
+                        const input = document.getElementById('ai-input');
+                        input.value = action.label;
+                        sendMessage();
+                    };
+                    
+                    actionsContainer.appendChild(btn);
+                });
+                
+                messagesDiv.appendChild(actionsContainer);
+            }
+            
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function enhanceWorkflowContent(content) {
+            // Convert plain text to HTML with better formatting
+            let html = content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>')
+                .replace(/(✅|❌|🚀|⚠️|📝|💊|🔧|📦)/g, '<span style="font-size: 1.2em;">$1</span>');
+            
+            return html;
+        }
+
+        function showWorkflowCards() {
+            const messagesDiv = document.getElementById('ai-messages');
+            
+            const workflows = [
+                {
+                    name: 'register_agent',
+                    icon: '🚀',
+                    title: 'Register New Agent',
+                    description: 'Safely onboard a new deployment agent with guided validation and connectivity checks',
+                    steps: 6,
+                    className: 'register'
+                },
+                {
+                    name: 'deploy_application',
+                    icon: '📦',
+                    title: 'Deploy Application',
+                    description: 'Deploy your application with pre-flight checks, validation, and monitoring',
+                    steps: 6,
+                    className: 'deploy'
+                },
+                {
+                    name: 'troubleshoot_failure',
+                    icon: '🔧',
+                    title: 'Troubleshoot Failure',
+                    description: 'Diagnose and remediate failed deployments with AI-powered analysis',
+                    steps: 4,
+                    className: 'troubleshoot'
+                },
+                {
+                    name: 'health_check',
+                    icon: '💊',
+                    title: 'System Health Check',
+                    description: 'Run a comprehensive health check across all agents and services',
+                    steps: 3,
+                    className: 'health'
+                }
+            ];
+            
+            const cardsContainer = document.createElement('div');
+            cardsContainer.className = 'ai-message assistant';
+            cardsContainer.innerHTML = '<div style="margin-bottom: 12px; font-weight: 500;">Choose a workflow to get started:</div>';
+            
+            workflows.forEach(workflow => {
+                const card = document.createElement('div');
+                card.className = `workflow-card ${workflow.className}`;
+                card.onclick = () => startWorkflowFromChat(workflow.name);
+                card.innerHTML = `
+                    <div class="workflow-card-header">
+                        <div class="workflow-card-icon">${workflow.icon}</div>
+                        <div class="workflow-card-title">${workflow.title}</div>
+                    </div>
+                    <div class="workflow-card-description">${workflow.description}</div>
+                    <div class="workflow-card-footer">
+                        <div class="workflow-card-steps">${workflow.steps} guided steps</div>
+                        <button class="workflow-card-cta">Start →</button>
+                    </div>
+                `;
+                cardsContainer.appendChild(card);
+            });
+            
+            messagesDiv.appendChild(cardsContainer);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function startWorkflowFromChat(workflowName) {
+            const input = document.getElementById('ai-input');
+            const friendlyNames = {
+                'register_agent': 'help me register a new agent',
+                'deploy_application': 'help me deploy an application',
+                'troubleshoot_failure': 'help me troubleshoot a failure',
+                'health_check': 'run a health check'
+            };
+            input.value = friendlyNames[workflowName] || `start ${workflowName} workflow`;
+            sendMessage();
+        }
+
+        function handleWorkflowAction(action, data) {
+            if (action === 'start_workflow' && data.workflow_id) {
+                // Show workflow started message
+                showWorkflowProgress(data);
+            }
+        }
+
+        function showWorkflowProgress(workflowData) {
+            const messagesDiv = document.getElementById('ai-messages');
+            const progressDiv = document.createElement('div');
+            progressDiv.className = 'workflow-progress';
+            progressDiv.id = `workflow-progress-${workflowData.workflow_id}`;
+            
+            const progress = workflowData.current_step ? 
+                ((workflowData.current_step.id.split('_').length / 6) * 100) : 0;
+            
+            progressDiv.innerHTML = `
+                <div class="workflow-progress-header">
+                    <div class="workflow-progress-title">Workflow in Progress</div>
+                    <div class="workflow-progress-badge">Active</div>
+                </div>
+                <div class="workflow-progress-bar">
+                    <div class="workflow-progress-fill" style="width: ${progress}%"></div>
+                </div>
+            `;
+            
+            messagesDiv.appendChild(progressDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const messagesDiv = document.getElementById('ai-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'ai-typing';
+            typingDiv.id = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="ai-typing-dot"></div>
+                <div class="ai-typing-dot"></div>
+                <div class="ai-typing-dot"></div>
+            `;
+            messagesDiv.appendChild(typingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        // Voice Recording Functions
+        async function toggleVoiceRecording() {
+            const voiceBtn = document.getElementById('voice-btn');
+            
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                voiceBtn.classList.remove('recording');
+            } else {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+                    
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        await sendVoiceMessage(audioBlob);
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+                    
+                    mediaRecorder.start();
+                    voiceBtn.classList.add('recording');
+                    addChatMessage('system', '🎤 Recording... Click again to stop');
+                } catch (error) {
+                    addChatMessage('system', '❌ Could not access microphone');
+                }
+            }
+        }
+
+        async function sendVoiceMessage(audioBlob) {
+            showTypingIndicator();
+            
+            try {
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recording.webm');
+                
+                const response = await fetch('/v1/ai/voice/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                removeTypingIndicator();
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addChatMessage('user', `🎤 ${data.transcription}`);
+                    addChatMessage('assistant', data.response);
+                    
+                    // Update conversation history
+                    conversationHistory.push({ role: 'user', content: data.transcription });
+                    conversationHistory.push({ role: 'assistant', content: data.response });
+                    if (conversationHistory.length > 20) {
+                        conversationHistory = conversationHistory.slice(-20);
+                    }
+                    
+                    setTimeout(() => {
+                        loadAgents();
+                        loadJobs();
+                        loadInsights();
+                    }, 500);
+                } else {
+                    addChatMessage('assistant', 'Sorry, I could not process the voice command.');
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                addChatMessage('assistant', 'Error processing voice input.');
+            }
+        }
+
+        // Suggestion Management
+        function showSuggestions(suggestions) {
+            const container = document.getElementById('ai-suggestions-container');
+            const grid = document.getElementById('ai-suggestions-grid');
+            
+            grid.innerHTML = suggestions.map(suggestion => `
+                <button class="ai-suggestion-btn" onclick="askAI('${suggestion.replace(/'/g, "\\'")}')">
+                    ${suggestion}
+                </button>
+            `).join('');
+            
+            container.classList.add('show');
+        }
+
+        function hideSuggestions() {
+            const container = document.getElementById('ai-suggestions-container');
+            container.classList.remove('show');
+        }
+
+        // Input Prompt Management
+        function showInputPrompt(prompt) {
+            const container = document.getElementById('ai-input-prompt');
+            container.textContent = '💡 ' + prompt;
+            container.classList.add('show');
+            
+            // Focus input
+            document.getElementById('ai-input').focus();
+        }
+
+        function hideInputPrompt() {
+            const container = document.getElementById('ai-input-prompt');
+            container.classList.remove('show');
+        }
+
+        function handleWorkflowAction(action, payload) {
+            if (!payload) return;
+
+            if (action === 'start_workflow') {
+                if (!payload.workflow_id) return;
+                currentWorkflowId = payload.workflow_id;
+                showWorkflowSidebar();
+                updateWorkflowDisplay(payload);
+
+                if (!payload.completed && !payload.failed) {
+                    if (pollInterval) clearInterval(pollInterval);
+                    pollInterval = setInterval(pollWorkflowStatus, 2000);
+                    setTimeout(pollWorkflowStatus, 0);
+                }
+            } else if (action === 'approve_workflow_step') {
+                updateWorkflowDisplay(payload);
+                if (!payload.completed && !payload.failed) {
+                    if (!pollInterval) {
+                        pollInterval = setInterval(pollWorkflowStatus, 2000);
+                    }
+                    setTimeout(pollWorkflowStatus, 0);
+                }
+            } else if (action === 'cancel_workflow') {
+                if (payload.cancelled) {
+                    hideWorkflowSidebar();
+                    stopPolling();
+                }
+            } else if (action === 'get_workflow_status') {
+                if (payload.id) {
+                    currentWorkflowId = payload.id;
+                }
+                showWorkflowSidebar();
+                updateWorkflowSteps(payload);
+                if (payload.status && !['completed', 'failed', 'cancelled'].includes(payload.status)) {
+                    if (pollInterval) clearInterval(pollInterval);
+                    pollInterval = setInterval(pollWorkflowStatus, 2000);
+                }
+            } else if (action === 'list_workflows') {
+                if (payload.workflows && payload.workflows.length === 1) {
+                    const [workflow] = payload.workflows;
+                    currentWorkflowId = workflow.id;
+                    showWorkflowSidebar();
+                    updateWorkflowSteps(workflow);
+                }
+            } else if (action === 'list_workflow_definitions') {
+                if (Array.isArray(payload.workflows)) {
+                    workflowDefinitions = payload.workflows;
+                    populateWorkflowSelector();
+                }
+            }
+        }
+
+        // ==================== WORKFLOW MANAGEMENT ====================
+        
+        let currentWorkflowId = null;
+        let pollInterval = null;
+
+        async function startSelectedWorkflow() {
+            const workflowType = document.getElementById('workflow-type').value;
+            if (!workflowType) {
+                alert('Please select a workflow');
+                return;
+            }
+
+            try {
+                // Get required context based on workflow type
+                let context = {};
+                const definition = workflowDefinitions.find(def => def.name === workflowType);
+                if (definition && Array.isArray(definition.required_context)) {
+                    for (const field of definition.required_context) {
+                        const promptMessage = workflowContextPrompts[field] || `Enter value for ${field}:`;
+                        const value = prompt(promptMessage);
+                        if (!value) {
+                            return;
+                        }
+                        context[field] = value;
+                    }
+                }
+
+                const response = await fetch(`/v1/ai/workflows/start?workflow_name=${workflowType}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(context)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentWorkflowId = data.workflow_id;
+                    showWorkflowSidebar();
+                    updateWorkflowDisplay(data);
+                    
+                    // Start polling for updates
+                    if (!data.completed && !data.failed) {
+                        if (pollInterval) clearInterval(pollInterval);
+                        pollInterval = setInterval(pollWorkflowStatus, 2000);
+                        setTimeout(pollWorkflowStatus, 0);
+                    }
+                }
+            } catch (error) {
+                console.error('Error starting workflow:', error);
+                alert('Failed to start workflow');
+            }
+        }
+
+        async function approveCurrentStep() {
+            if (!currentWorkflowId) return;
+
+            try {
+                const response = await fetch(`/v1/ai/workflows/${currentWorkflowId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ approved: true })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    updateWorkflowDisplay(data);
+                }
+            } catch (error) {
+                console.error('Error approving step:', error);
+            }
+        }
+
+        async function rejectCurrentStep() {
+            if (!currentWorkflowId) return;
+
+            if (confirm('Are you sure you want to reject this step? The workflow will be cancelled.')) {
+                try {
+                    const response = await fetch(`/v1/ai/workflows/${currentWorkflowId}/approve`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ approved: false })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        updateWorkflowDisplay(data);
+                        stopPolling();
+                    }
+                } catch (error) {
+                    console.error('Error rejecting step:', error);
+                }
+            }
+        }
+
+        async function cancelCurrentWorkflow() {
+            if (!currentWorkflowId) return;
+
+            if (confirm('Are you sure you want to cancel this workflow?')) {
+                try {
+                    await fetch(`/v1/ai/workflows/${currentWorkflowId}/cancel`, {
+                        method: 'POST'
+                    });
+
+                    hideWorkflowSidebar();
+                    stopPolling();
+                } catch (error) {
+                    console.error('Error cancelling workflow:', error);
+                }
+            }
+        }
+
+        async function pollWorkflowStatus() {
+            if (!currentWorkflowId) {
+                stopPolling();
+                return;
+            }
+
+            try {
+                const response = await fetch(`/v1/ai/workflows/${currentWorkflowId}`);
+                if (response.ok) {
+                    const workflow = await response.json();
+                    updateWorkflowSteps(workflow);
+
+                    if (workflow.status === 'completed' || workflow.status === 'failed' || workflow.status === 'cancelled') {
+                        stopPolling();
+                    }
+                }
+            } catch (error) {
+                console.error('Error polling workflow:', error);
+            }
+        }
+
+        function updateWorkflowDisplay(data) {
+            if (data.completed) {
+                addChatMessage('assistant', `✅ ${data.message}`);
+                hideWorkflowSidebar();
+                stopPolling();
+                return;
+            }
+
+            if (data.failed) {
+                addChatMessage('assistant', `❌ ${data.message}`);
+                hideWorkflowSidebar();
+                stopPolling();
+                return;
+            }
+
+            if (data.current_step) {
+                // Show workflow actions if approval is needed
+                const actionsDiv = document.getElementById('workflow-actions');
+                if (data.requires_approval) {
+                    actionsDiv.style.display = 'flex';
+                } else {
+                    actionsDiv.style.display = 'none';
+                }
+
+                // Add message to chat
+                addChatMessage('assistant', `⚙️ ${data.message}`);
+            }
+        }
+
+        function updateWorkflowSteps(workflow) {
+            const stepsContainer = document.getElementById('workflow-steps');
+            const nameEl = document.getElementById('workflow-name');
+            const descEl = document.getElementById('workflow-desc');
+
+            nameEl.textContent = workflow.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            descEl.textContent = workflow.description;
+
+            stepsContainer.innerHTML = workflow.steps.map((step, index) => {
+                const icon = getStepIcon(step.status);
+                return `
+                    <div class="workflow-step ${step.status}">
+                        <div class="step-header">
+                            <div class="step-icon ${step.status}">${icon}</div>
+                            <div class="step-title">${step.title}</div>
+                        </div>
+                        <div class="step-description">${step.description}</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Show active workflow panel
+            document.getElementById('active-workflow').style.display = 'block';
+        }
+
+        function getStepIcon(status) {
+            switch (status) {
+                case 'pending': return '○';
+                case 'in-progress': return '◐';
+                case 'completed': return '✓';
+                case 'failed': return '✗';
+                case 'skipped': return '−';
+                default: return '○';
+            }
+        }
+
+        function showWorkflowSidebar() {
+            const sidebar = document.getElementById('workflow-sidebar');
+            sidebar.classList.remove('hidden');
+        }
+
+        function hideWorkflowSidebar() {
+            const sidebar = document.getElementById('workflow-sidebar');
+            sidebar.classList.add('hidden');
+            document.getElementById('active-workflow').style.display = 'none';
+            document.getElementById('workflow-type').value = '';
+            currentWorkflowId = null;
+        }
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+        // Add workflow suggestions to chat
+        function suggestWorkflow(workflowName) {
+            document.getElementById('workflow-type').value = workflowName;
+            showWorkflowSidebar();
+        }
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,2020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DeployBot Agents</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{margin:0;font-family:Segoe UI,-apple-system,sans-serif;background:#f4f6fb;color:#1f2233;}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:#fff;border-bottom:1px solid #d8dce7;box-shadow:0 4px 12px rgba(15,23,42,.06);}
+nav a{margin-left:10px;padding:7px 12px;border-radius:8px;border:1px solid #d8dce7;text-decoration:none;color:#5f6676;font-size:14px;}
+nav a.primary{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 8px 16px rgba(37,99,235,.3);}
+main{display:grid;grid-template-columns:260px 1fr;gap:18px;padding:18px;}
+aside,.card{background:#fff;border:1px solid #d8dce7;border-radius:14px;box-shadow:0 14px 32px rgba(15,23,42,.08);}
+aside{display:flex;flex-direction:column;padding:16px;max-height:calc(100vh-120px);}
+aside input{padding:8px 10px;border-radius:8px;border:1px solid #d8dce7;margin-bottom:12px;}
+#agent-list{list-style:none;margin:0;padding:0;overflow:auto;}
+.agent{padding:10px;border-radius:10px;cursor:pointer;margin-bottom:8px;border:1px solid transparent;}
+.agent:hover{border-color:#b8c0d1;background:#eef2fb;}
+.agent.active{border-color:#2563eb;background:rgba(37,99,235,.12);}
+.agent small{display:flex;justify-content:space-between;color:#6b7280;font-size:12px;margin-top:4px;}
+section{display:flex;flex-direction:column;gap:16px;}
+.card{padding:18px;display:flex;flex-direction:column;gap:14px;}
+.card h2{margin:0;font-size:17px;}
+.status-chip{padding:4px 10px;border-radius:999px;font-size:12px;display:inline-flex;align-items:center;gap:6px;}
+.status-online{background:rgba(5,150,105,.16);color:#047857;}
+.status-offline{background:rgba(220,38,38,.16);color:#b91c1c;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;}
+.grid div{background:#eef2fb;border-radius:10px;padding:12px;font-size:13px;}
+.taglist{display:flex;flex-wrap:wrap;gap:6px;}
+.taglist span{background:#eef2fb;border-radius:999px;padding:4px 10px;font-size:12px;}
+.metrics{display:flex;flex-direction:column;gap:10px;}
+.metrics-row{display:flex;gap:12px;flex-wrap:wrap;}
+.metric{flex:1;min-width:160px;font-size:12px;color:#6b7280;}
+.bar{position:relative;height:8px;border-radius:999px;background:#dfe3ec;margin:4px 0;}
+.fill{position:absolute;top:0;left:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,#2563eb,#7c3aed);}
+.spark{width:100%;height:50px;}
+.quick{display:flex;flex-wrap:wrap;gap:8px;}
+.quick button{border:1px solid #d8dce7;background:#eef2fb;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;}
+.quick button:hover{border-color:#2563eb;color:#2563eb;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{text-align:left;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding-bottom:4px;}
+td{border-top:1px solid #d8dce7;padding:6px 4px;}
+.status.success{color:#047857;font-weight:600;}
+.status.failed{color:#b91c1c;font-weight:600;}
+.status.running{color:#2563eb;font-weight:600;}
+.status.pending{color:#6b7280;font-weight:600;}
+.log{background:#0f172a;color:#d1d9e6;border-radius:12px;padding:12px;font-family:Consolas,monospace;font-size:12px;max-height:220px;overflow:auto;}
+.log div{margin-bottom:6px;white-space:pre-wrap;}
+.history{max-height:200px;overflow:auto;display:flex;flex-direction:column;gap:8px;}
+.history-entry{border:1px solid #d8dce7;border-radius:10px;padding:10px;background:#f2f4fb;font-size:12px;}
+.feedback{font-size:12px;color:#6b7280;}
+.empty{color:#6b7280;font-size:13px;text-align:center;padding:24px;border:1px dashed #d8dce7;border-radius:10px;}
+.link-btn{border:none;background:#eef2fb;color:#4b5563;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;}
+.link-btn:hover{color:#2563eb;}
+@media(max-width:920px){main{grid-template-columns:1fr;}aside{max-height:none;}}
+</style>
+</head>
+<body>
+<header><h1>DeployBot Agents</h1><nav><a href="/">Dashboard</a><a href="/">AI Workspace</a><a class="primary" href="/agents.html">Agents</a></nav></header>
+<main>
+<aside>
+<input id="agent-search" placeholder="Search agents">
+<ul id="agent-list"></ul>
+</aside>
+<section>
+<div class="card" id="summary-card">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+<h2 id="summary-title">Select an agent</h2><span id="summary-status" class="status-chip" style="display:none"></span>
+</div>
+<div id="summary-empty" class="empty">Pick an agent to inspect metrics, history, and send remote commands.</div>
+<div id="summary-content" style="display:none">
+<div class="grid" id="summary-grid"></div>
+<div class="taglist" id="summary-tags" style="display:none"></div>
+<div class="metrics" id="metrics-block" style="display:none">
+<div class="metrics-row">
+<div class="metric">CPU<div class="bar"><div class="fill" id="metric-cpu" style="width:0%"></div></div><span id="metric-cpu-value">-</span></div>
+<div class="metric">Memory<div class="bar"><div class="fill" id="metric-mem" style="width:0%"></div></div><span id="metric-mem-value">-</span></div>
+<div class="metric">Disk free<div class="bar"><div class="fill" id="metric-disk" style="width:0%"></div></div><span id="metric-disk-value">-</span></div>
+</div>
+<svg class="spark" id="metrics-spark" viewBox="0 0 400 50" preserveAspectRatio="none"></svg>
+</div>
+</div>
+</div>
+<div class="card" id="command-card" style="display:none">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><h2>Run command</h2><span id="command-feedback" class="feedback"></span></div>
+<form id="command-form">
+<textarea id="command-text" placeholder="Example: uptime -p" required style="width:100%;min-height:70px;border-radius:10px;border:1px solid #d8dce7;padding:8px;"></textarea>
+<div style="display:flex;gap:8px;flex-wrap:wrap;">
+<input id="command-timeout" type="number" min="5" max="900" value="60" placeholder="Timeout (s)" style="flex:1;border-radius:8px;border:1px solid #d8dce7;padding:8px;">
+<input id="command-dir" type="text" placeholder="Working directory (optional)" style="flex:1;border-radius:8px;border:1px solid #d8dce7;padding:8px;">
+</div>
+<button class="primary" id="command-submit" type="submit" style="align-self:flex-start;padding:9px 16px;border:none;border-radius:10px;background:#2563eb;color:#fff;">Send command</button>
+</form>
+<div class="quick" id="quick-actions"></div>
+<div class="history" id="history-list"></div>
+</div>
+<div class="card" id="jobs-card" style="display:none">
+<h2>Recent jobs</h2>
+<table><thead><tr><th>ID</th><th>Type</th><th>Status</th><th>Host</th><th>Created</th><th>Finished</th></tr></thead><tbody id="jobs-body"></tbody></table>
+</div>
+<div class="card" id="logs-card" style="display:none">
+<div style="display:flex;justify-content:space-between;align-items:center;"><h2>Logs</h2><button class="link-btn" id="logs-reload">Reload</button></div>
+<div class="log" id="log-view"><div>No log entries yet.</div></div>
+</div>
+</section>
+</main>
+<script>
+
+const STALE_THRESHOLD_MS = 60000;
+
+
+
+const state = {
+
+  agents: [],
+
+  filtered: [],
+
+  selected: null,
+
+  jobs: [],
+
+  metrics: [],
+
+  templates: [],
+
+  logs: [],
+
+  listRefreshHandle: null,
+
+  detailRefreshHandle: null
+
+};
+
+
+
+const elements = {};
+
+
+
+document.addEventListener('DOMContentLoaded', () => {
+
+  cacheElements();
+
+  attachListeners();
+
+  clearSelection();
+
+  loadTemplates();
+
+  loadAgents();
+
+  state.listRefreshHandle = setInterval(() => loadAgents(true), 20000);
+
+});
+
+
+
+window.addEventListener('beforeunload', () => {
+
+  if (state.listRefreshHandle) {
+
+    clearInterval(state.listRefreshHandle);
+
+  }
+
+  if (state.detailRefreshHandle) {
+
+    clearInterval(state.detailRefreshHandle);
+
+  }
+
+});
+
+
+
+function cacheElements() {
+
+  elements.search = document.getElementById('agent-search');
+
+  elements.agentList = document.getElementById('agent-list');
+
+  elements.summaryTitle = document.getElementById('summary-title');
+
+  elements.summaryStatus = document.getElementById('summary-status');
+
+  elements.summaryEmpty = document.getElementById('summary-empty');
+
+  elements.summaryContent = document.getElementById('summary-content');
+
+  elements.summaryGrid = document.getElementById('summary-grid');
+
+  elements.summaryTags = document.getElementById('summary-tags');
+
+  elements.metricsBlock = document.getElementById('metrics-block');
+
+  elements.metricCpu = document.getElementById('metric-cpu');
+
+  elements.metricCpuValue = document.getElementById('metric-cpu-value');
+
+  elements.metricMem = document.getElementById('metric-mem');
+
+  elements.metricMemValue = document.getElementById('metric-mem-value');
+
+  elements.metricDisk = document.getElementById('metric-disk');
+
+  elements.metricDiskValue = document.getElementById('metric-disk-value');
+
+  elements.metricsSpark = document.getElementById('metrics-spark');
+
+  elements.commandCard = document.getElementById('command-card');
+
+  elements.commandForm = document.getElementById('command-form');
+
+  elements.commandText = document.getElementById('command-text');
+
+  elements.commandTimeout = document.getElementById('command-timeout');
+
+  elements.commandDir = document.getElementById('command-dir');
+
+  elements.commandFeedback = document.getElementById('command-feedback');
+
+  elements.quickActions = document.getElementById('quick-actions');
+
+  elements.historyList = document.getElementById('history-list');
+
+  elements.jobsCard = document.getElementById('jobs-card');
+
+  elements.jobsBody = document.getElementById('jobs-body');
+
+  elements.logsCard = document.getElementById('logs-card');
+
+  elements.logView = document.getElementById('log-view');
+
+  elements.logsReload = document.getElementById('logs-reload');
+
+}
+
+
+
+function attachListeners() {
+
+  if (elements.search) {
+
+    elements.search.addEventListener('input', () => applyFilter(elements.search.value));
+
+  }
+
+  if (elements.commandForm) {
+
+    elements.commandForm.addEventListener('submit', handleCommandSubmit);
+
+  }
+
+  if (elements.logsReload) {
+
+    elements.logsReload.addEventListener('click', (event) => {
+
+      event.preventDefault();
+
+      reloadLogs();
+
+    });
+
+  }
+
+}
+
+
+
+function clearSelection() {
+
+  state.selected = null;
+
+  state.jobs = [];
+
+  state.metrics = [];
+
+  state.logs = [];
+
+  if (state.detailRefreshHandle) {
+
+    clearInterval(state.detailRefreshHandle);
+
+    state.detailRefreshHandle = null;
+
+  }
+
+  if (elements.summaryTitle) {
+
+    elements.summaryTitle.textContent = 'Select an agent';
+
+  }
+
+  if (elements.summaryStatus) {
+
+    elements.summaryStatus.style.display = 'none';
+
+  }
+
+  if (elements.summaryContent) {
+
+    elements.summaryContent.style.display = 'none';
+
+  }
+
+  if (elements.summaryEmpty) {
+
+    elements.summaryEmpty.style.display = 'block';
+
+  }
+
+  if (elements.summaryGrid) {
+
+    elements.summaryGrid.innerHTML = '';
+
+  }
+
+  if (elements.summaryTags) {
+
+    elements.summaryTags.style.display = 'none';
+
+    elements.summaryTags.innerHTML = '';
+
+  }
+
+  if (elements.metricsBlock) {
+
+    elements.metricsBlock.style.display = 'none';
+
+  }
+
+  if (elements.quickActions) {
+
+    elements.quickActions.innerHTML = '<span class="feedback">Pick an agent to load quick actions.</span>';
+
+  }
+
+  if (elements.historyList) {
+
+    elements.historyList.innerHTML = '';
+
+  }
+
+  if (elements.jobsBody) {
+
+    elements.jobsBody.innerHTML = '';
+
+  }
+
+  if (elements.logView) {
+
+    elements.logView.innerHTML = '<div>No log entries yet.</div>';
+
+  }
+
+  if (elements.commandCard) {
+
+    elements.commandCard.style.display = 'none';
+
+  }
+
+  if (elements.jobsCard) {
+
+    elements.jobsCard.style.display = 'none';
+
+  }
+
+  if (elements.logsCard) {
+
+    elements.logsCard.style.display = 'none';
+
+  }
+
+  if (elements.commandForm) {
+
+    elements.commandForm.reset();
+
+  }
+
+  setFeedback('', false);
+
+}
+
+
+
+async function loadTemplates() {
+
+  try {
+
+    const data = await fetchJSON('/v1/commands?include_system=true');
+
+    state.templates = Array.isArray(data) ? data : [];
+
+  } catch (error) {
+
+    console.warn('Failed to load templates', error);
+
+    state.templates = [];
+
+  } finally {
+
+    renderQuickActions();
+
+  }
+
+}
+
+
+
+async function loadAgents(silent = false) {
+
+  try {
+
+    const data = await fetchJSON('/v1/agents');
+
+    const agents = Array.isArray(data) ? data : [];
+
+    agents.sort((a, b) => {
+
+      const nameA = (a.hostname || '').toLowerCase();
+
+      const nameB = (b.hostname || '').toLowerCase();
+
+      return nameA.localeCompare(nameB);
+
+    });
+
+    state.agents = agents;
+
+    applyFilter(elements.search ? elements.search.value : '');
+
+    if (state.selected) {
+
+      const updated = state.agents.find((agent) => agent.id === state.selected.id);
+
+      if (updated) {
+
+        state.selected = updated;
+
+        setFeedback('', false);
+
+        updateSummary();
+
+        renderMetrics();
+
+      } else {
+
+        clearSelection();
+
+      }
+
+    }
+
+  } catch (error) {
+
+    console.error('Failed to load agents', error);
+
+    if (!silent && elements.agentList) {
+
+      const li = document.createElement('li');
+
+      li.className = 'feedback';
+
+      li.textContent = 'Failed to load agents.';
+
+      elements.agentList.innerHTML = '';
+
+      elements.agentList.appendChild(li);
+
+    }
+
+  }
+
+}
+
+
+
+function applyFilter(term = '') {
+
+  const query = term.trim().toLowerCase();
+
+  const agents = state.agents.slice();
+
+  if (!query) {
+
+    state.filtered = agents;
+
+  } else {
+
+    state.filtered = agents.filter((agent) => {
+
+      const hostname = (agent.hostname || '').toLowerCase();
+
+      const id = (agent.id || '').toLowerCase();
+
+      const tags = (agent.tags || []).join(' ').toLowerCase();
+
+      const capabilities = Object.keys(agent.capabilities || {}).join(' ').toLowerCase();
+
+      return hostname.includes(query) || id.includes(query) || tags.includes(query) || capabilities.includes(query);
+
+    });
+
+  }
+
+  renderAgentList();
+
+}
+
+
+
+function renderAgentList() {
+
+  if (!elements.agentList) {
+
+    return;
+
+  }
+
+  elements.agentList.innerHTML = '';
+
+  if (!state.filtered.length) {
+
+    const li = document.createElement('li');
+
+    li.className = 'feedback';
+
+    li.textContent = state.agents.length ? 'No agents match that search.' : 'No agents registered yet.';
+
+    elements.agentList.appendChild(li);
+
+    return;
+
+  }
+
+  state.filtered.forEach((agent) => {
+
+    const li = document.createElement('li');
+
+    li.className = 'agent';
+
+    if (state.selected && state.selected.id === agent.id) {
+
+      li.classList.add('active');
+
+    }
+
+    li.dataset.agentId = agent.id;
+
+
+
+    const header = document.createElement('div');
+
+    header.style.display = 'flex';
+
+    header.style.justifyContent = 'space-between';
+
+    header.style.alignItems = 'center';
+
+    header.style.gap = '8px';
+
+
+
+    const nameSpan = document.createElement('span');
+
+    nameSpan.textContent = agent.hostname || agent.id;
+
+    header.appendChild(nameSpan);
+
+
+
+    const statusChip = document.createElement('span');
+
+    const status = determineAgentStatus(agent);
+
+    statusChip.className = `status-chip ${status === 'online' ? 'status-online' : 'status-offline'}`;
+
+    statusChip.textContent = status === 'online' ? 'Online' : 'Offline';
+
+    header.appendChild(statusChip);
+
+
+
+    const details = document.createElement('small');
+
+    details.style.display = 'flex';
+
+    details.style.justifyContent = 'space-between';
+
+    details.style.gap = '8px';
+
+
+
+    const heartbeat = document.createElement('span');
+
+    heartbeat.textContent = formatRelativeTime(agent.last_heartbeat);
+
+    details.appendChild(heartbeat);
+
+
+
+    const tagText = document.createElement('span');
+
+    const tags = (agent.tags || []).slice(0, 2);
+
+    if (tags.length) {
+
+      tagText.textContent = tags.join(', ');
+
+    } else {
+
+      const caps = Object.keys(agent.capabilities || {}).slice(0, 2);
+
+      tagText.textContent = caps.join(', ');
+
+    }
+
+    details.appendChild(tagText);
+
+
+
+    li.appendChild(header);
+
+    li.appendChild(details);
+
+
+
+    li.addEventListener('click', () => selectAgent(agent.id));
+
+    elements.agentList.appendChild(li);
+
+  });
+
+}
+
+
+
+function determineAgentStatus(agent) {
+
+  if (!agent) {
+
+    return 'offline';
+
+  }
+
+  const explicit = (agent.status || '').toLowerCase();
+
+  if (explicit === 'offline') {
+
+    return 'offline';
+
+  }
+
+  const heartbeat = agent.last_heartbeat ? new Date(agent.last_heartbeat).getTime() : NaN;
+
+  if (Number.isNaN(heartbeat)) {
+
+    return explicit || 'offline';
+
+  }
+
+  const staleMs = Date.now() - heartbeat;
+
+  return staleMs > STALE_THRESHOLD_MS ? 'offline' : 'online';
+
+}
+
+
+
+function selectAgent(agentId) {
+
+  const agent = state.agents.find((item) => item.id === agentId);
+
+  if (!agent) {
+
+    return;
+
+  }
+
+  state.selected = agent;
+
+  setFeedback('', false);
+
+  renderAgentList();
+
+  updateSummary();
+
+  renderQuickActions();
+
+  renderMetrics();
+
+  showDetailCards();
+
+  loadAgentDetails(agent);
+
+  if (state.detailRefreshHandle) {
+
+    clearInterval(state.detailRefreshHandle);
+
+  }
+
+  state.detailRefreshHandle = setInterval(() => {
+
+    if (state.selected && state.selected.id === agent.id) {
+
+      loadAgentDetails(state.selected, { quiet: true });
+
+    }
+
+  }, 15000);
+
+}
+
+
+
+function showDetailCards() {
+
+  if (elements.commandCard) {
+
+    elements.commandCard.style.display = 'flex';
+
+  }
+
+  if (elements.jobsCard) {
+
+    elements.jobsCard.style.display = 'flex';
+
+  }
+
+  if (elements.logsCard) {
+
+    elements.logsCard.style.display = 'flex';
+
+  }
+
+}
+
+
+
+function updateSummary() {
+
+  const agent = state.selected;
+
+  if (!agent) {
+
+    clearSelection();
+
+    return;
+
+  }
+
+  if (elements.summaryTitle) {
+
+    elements.summaryTitle.textContent = agent.hostname || agent.id;
+
+  }
+
+  if (elements.summaryStatus) {
+
+    const status = determineAgentStatus(agent);
+
+    elements.summaryStatus.textContent = status === 'online' ? 'Online' : 'Offline';
+
+    elements.summaryStatus.classList.remove('status-online', 'status-offline');
+
+    elements.summaryStatus.classList.add(status === 'online' ? 'status-online' : 'status-offline');
+
+    elements.summaryStatus.style.display = 'inline-flex';
+
+  }
+
+  if (elements.summaryEmpty) {
+
+    elements.summaryEmpty.style.display = 'none';
+
+  }
+
+  if (elements.summaryContent) {
+
+    elements.summaryContent.style.display = 'flex';
+
+  }
+
+
+
+  if (elements.summaryGrid) {
+
+    const info = [];
+
+    info.push({ label: 'Agent ID', value: agent.id });
+
+    info.push({ label: 'Registered', value: formatDateTime(agent.registered_at) });
+
+    info.push({ label: 'Last heartbeat', value: agent.last_heartbeat ? `${formatDateTime(agent.last_heartbeat)} (${formatRelativeTime(agent.last_heartbeat)})` : null });
+
+    info.push({ label: 'Uptime', value: formatDuration(agent.uptime_seconds) });
+
+    info.push({ label: 'Version', value: agent.agent_version || null });
+
+    const totalCommands = Number(agent.total_commands || 0);
+
+    const successCommands = Number(agent.successful_commands || 0);
+
+    const failedCommands = Number(agent.failed_commands || 0);
+
+    info.push({
+
+      label: 'Commands',
+
+      value: totalCommands
+
+        ? `${totalCommands} total | ${successCommands} success | ${failedCommands} failed`
+
+        : 'No commands yet'
+
+    });
+
+
+
+    elements.summaryGrid.innerHTML = '';
+
+    info.forEach((item) => {
+
+      if (!item.value || item.value === '-' || item.value === null) {
+
+        return;
+
+      }
+
+      const cell = document.createElement('div');
+
+      const label = document.createElement('strong');
+
+      label.textContent = item.label;
+
+      const value = document.createElement('div');
+
+      value.textContent = item.value;
+
+      cell.appendChild(label);
+
+      cell.appendChild(value);
+
+      elements.summaryGrid.appendChild(cell);
+
+    });
+
+
+
+    if (!elements.summaryGrid.children.length) {
+
+      const fallback = document.createElement('div');
+
+      fallback.textContent = 'No metadata available for this agent yet.';
+
+      elements.summaryGrid.appendChild(fallback);
+
+    }
+
+  }
+
+
+
+  if (elements.summaryTags) {
+
+    if (agent.tags && agent.tags.length) {
+
+      elements.summaryTags.style.display = 'flex';
+
+      elements.summaryTags.innerHTML = '';
+
+      agent.tags.forEach((tag) => {
+
+        const span = document.createElement('span');
+
+        span.textContent = tag;
+
+        elements.summaryTags.appendChild(span);
+
+      });
+
+    } else {
+
+      elements.summaryTags.style.display = 'none';
+
+      elements.summaryTags.innerHTML = '';
+
+    }
+
+  }
+
+}
+
+
+
+function renderQuickActions() {
+
+  if (!elements.quickActions) {
+
+    return;
+
+  }
+
+  elements.quickActions.innerHTML = '';
+
+  if (!state.selected) {
+
+    elements.quickActions.innerHTML = '<span class="feedback">Pick an agent to load quick actions.</span>';
+
+    return;
+
+  }
+
+  if (!state.templates.length) {
+
+    elements.quickActions.innerHTML = '<span class="feedback">No command templates available yet.</span>';
+
+    return;
+
+  }
+
+  const tagSet = new Set((state.selected.tags || []).map((tag) => tag.toLowerCase()));
+
+  const templates = state.templates
+
+    .slice()
+
+    .sort((a, b) => {
+
+      const scoreA = templateScore(a, tagSet);
+
+      const scoreB = templateScore(b, tagSet);
+
+      if (scoreA === scoreB) {
+
+        return a.name.localeCompare(b.name);
+
+      }
+
+      return scoreB - scoreA;
+
+    })
+
+    .slice(0, 6);
+
+
+
+  if (!templates.length) {
+
+    elements.quickActions.innerHTML = '<span class="feedback">No matching templates for this agent yet.</span>';
+
+    return;
+
+  }
+
+
+
+  templates.forEach((template) => {
+
+    const button = document.createElement('button');
+
+    button.textContent = template.name;
+
+    button.title = template.description || template.command;
+
+    button.addEventListener('click', () => runTemplate(template));
+
+    elements.quickActions.appendChild(button);
+
+  });
+
+}
+
+
+
+function templateScore(template, agentTags) {
+
+  let score = template.is_system ? 1 : 2;
+
+  if (template.tags && template.tags.length) {
+
+    template.tags.forEach((tag) => {
+
+      if (agentTags.has(tag.toLowerCase())) {
+
+        score += 3;
+
+      }
+
+    });
+
+  }
+
+  return score;
+
+}
+
+
+
+async function runTemplate(template) {
+
+  const agent = state.selected;
+
+  if (!agent) {
+
+    return;
+
+  }
+
+  setFeedback(`Scheduling "${template.name}"...`, false);
+
+  try {
+
+    const payload = {
+
+      host: agent.hostname || agent.id,
+
+      arguments: [],
+
+      environment: {},
+
+      timeout_seconds: 300,
+
+      working_dir: null
+
+    };
+
+    const response = await fetchJSON(`/v1/commands/${template.id}/run`, {
+
+      method: 'POST',
+
+      headers: { 'Content-Type': 'application/json' },
+
+      body: JSON.stringify(payload)
+
+    });
+
+    const jobId = response && response.job ? response.job.id : null;
+
+    setFeedback(jobId ? `Template scheduled as job ${jobId}` : 'Template scheduled.', false);
+
+    loadAgentDetails(agent, { quiet: true });
+
+  } catch (error) {
+
+    setFeedback(error.message || 'Failed to run template.', true);
+
+  }
+
+}
+
+
+
+async function loadAgentDetails(agent, options = {}) {
+
+  const quiet = options.quiet === true;
+
+  if (!agent) {
+
+    return;
+
+  }
+
+  if (!quiet) {
+
+    if (elements.historyList) {
+
+      elements.historyList.innerHTML = '<div class="feedback">Loading history...</div>';
+
+    }
+
+    if (elements.jobsBody) {
+
+      elements.jobsBody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+
+    }
+
+    if (elements.logView) {
+
+      elements.logView.innerHTML = '';
+
+      const loadingDiv = document.createElement('div');
+
+      loadingDiv.textContent = 'Loading logs...';
+
+      elements.logView.appendChild(loadingDiv);
+
+    }
+
+  }
+
+
+
+  const [metricsResult, jobsResult, logsResult] = await Promise.allSettled([
+
+    fetchJSON(`/v1/agents/${agent.id}/metrics?limit=50`),
+
+    fetchJSON(`/v1/agents/${agent.id}/jobs?limit=25`),
+
+    fetchJSON(`/v1/agents/${agent.id}/logs?limit=200`)
+
+  ]);
+
+
+
+  if (metricsResult.status === 'fulfilled') {
+
+    state.metrics = Array.isArray(metricsResult.value) ? metricsResult.value : [];
+
+  } else if (!quiet) {
+
+    console.warn('Failed to load metrics', metricsResult.reason);
+
+    state.metrics = [];
+
+  }
+
+
+
+  if (jobsResult.status === 'fulfilled') {
+
+    state.jobs = Array.isArray(jobsResult.value) ? jobsResult.value : [];
+
+  } else if (!quiet) {
+
+    console.warn('Failed to load jobs', jobsResult.reason);
+
+    state.jobs = [];
+
+  }
+
+
+
+  if (logsResult.status === 'fulfilled') {
+
+    state.logs = Array.isArray(logsResult.value) ? logsResult.value : [];
+
+  } else if (!quiet) {
+
+    console.warn('Failed to load logs', logsResult.reason);
+
+    state.logs = [];
+
+  }
+
+
+
+  renderMetrics();
+
+  renderJobs();
+
+  renderHistory();
+
+  renderLogs();
+
+}
+
+
+
+function renderMetrics() {
+
+  const agent = state.selected;
+
+  if (!elements.metricsBlock || !agent) {
+
+    return;
+
+  }
+
+  const currentSample = agent.current_metrics || (state.metrics.length ? state.metrics[0].metrics : null);
+
+  if (!currentSample && !state.metrics.length) {
+
+    elements.metricsBlock.style.display = 'none';
+
+    return;
+
+  }
+
+  elements.metricsBlock.style.display = 'flex';
+
+
+
+  const cpuValue = currentSample && typeof currentSample.cpu_percent === 'number' ? currentSample.cpu_percent : null;
+
+  const memValue = currentSample && typeof currentSample.mem_percent === 'number' ? currentSample.mem_percent : null;
+
+  const diskValue = currentSample && typeof currentSample.disk_free_gb === 'number' ? currentSample.disk_free_gb : null;
+
+
+
+  updateMetric(elements.metricCpu, elements.metricCpuValue, cpuValue, '%');
+
+  updateMetric(elements.metricMem, elements.metricMemValue, memValue, '%');
+
+
+
+  const diskSamples = state.metrics
+
+    .map((sample) => (sample.metrics && typeof sample.metrics.disk_free_gb === 'number' ? sample.metrics.disk_free_gb : null))
+
+    .filter((value) => value !== null);
+
+  const diskMax = diskSamples.length ? Math.max(...diskSamples, diskValue || 0) : null;
+
+  updateMetric(elements.metricDisk, elements.metricDiskValue, diskValue, 'GB', diskMax);
+
+
+
+  renderSparkline();
+
+}
+
+
+
+function updateMetric(barElement, valueElement, value, suffix = '%', maxOverride) {
+
+  if (!barElement || !valueElement) {
+
+    return;
+
+  }
+
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+
+    barElement.style.width = '0%';
+
+    valueElement.textContent = '-';
+
+    return;
+
+  }
+
+  const numeric = Number(value);
+
+  const maxValue = maxOverride && maxOverride > 0
+
+    ? maxOverride
+
+    : suffix === '%'
+
+      ? 100
+
+      : Math.max(numeric, 100);
+
+  const clamped = Math.max(0, Math.min(maxValue, numeric));
+
+  const percent = maxValue ? (clamped / maxValue) * 100 : 0;
+
+  barElement.style.width = `${percent.toFixed(1)}%`;
+
+  if (suffix === '%') {
+
+    valueElement.textContent = `${numeric.toFixed(1)}%`;
+
+  } else {
+
+    valueElement.textContent = `${numeric.toFixed(1)} ${suffix}`;
+
+  }
+
+}
+
+
+
+function renderSparkline() {
+
+  if (!elements.metricsSpark) {
+
+    return;
+
+  }
+
+  elements.metricsSpark.innerHTML = '';
+
+  let samples = state.metrics.slice();
+
+  const agent = state.selected;
+
+  if (!samples.length && agent && agent.current_metrics) {
+
+    samples = [{
+
+      recorded_at: agent.last_heartbeat || new Date().toISOString(),
+
+      metrics: agent.current_metrics
+
+    }];
+
+  }
+
+  if (!samples.length) {
+
+    return;
+
+  }
+
+  const values = samples
+
+    .slice()
+
+    .reverse()
+
+    .map((sample) => {
+
+      const metric = sample.metrics && typeof sample.metrics.cpu_percent === 'number' ? sample.metrics.cpu_percent : 0;
+
+      return Math.max(0, Math.min(100, metric));
+
+    });
+
+
+
+  const width = 400;
+
+  const height = 50;
+
+  const count = values.length;
+
+  const step = count > 1 ? width / (count - 1) : 0;
+
+
+
+  const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+
+  const points = values
+
+    .map((value, index) => {
+
+      const x = count > 1 ? step * index : width / 2;
+
+      const y = height - (value / 100) * height;
+
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+
+    })
+
+    .join(' ');
+
+  polyline.setAttribute('fill', 'none');
+
+  polyline.setAttribute('stroke', '#2563eb');
+
+  polyline.setAttribute('stroke-width', '2');
+
+  polyline.setAttribute('points', points);
+
+  elements.metricsSpark.appendChild(polyline);
+
+}
+
+
+
+function renderJobs() {
+
+  if (!elements.jobsBody) {
+
+    return;
+
+  }
+
+  elements.jobsBody.innerHTML = '';
+
+  if (!state.jobs.length) {
+
+    const tr = document.createElement('tr');
+
+    const td = document.createElement('td');
+
+    td.colSpan = 6;
+
+    td.textContent = 'No recent jobs for this agent.';
+
+    tr.appendChild(td);
+
+    elements.jobsBody.appendChild(tr);
+
+    return;
+
+  }
+
+  const rows = state.jobs
+
+    .slice()
+
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+    .slice(0, 10);
+
+
+
+  rows.forEach((job) => {
+
+    const tr = document.createElement('tr');
+
+    const status = normalizeStatus(job.status);
+
+    const cells = [
+
+      job.id,
+
+      job.job_type || '-',
+
+      status,
+
+      job.host || '-',
+
+      formatDateTime(job.created_at),
+
+      job.completed_at ? formatDateTime(job.completed_at) : '-'
+
+    ];
+
+    cells.forEach((value, index) => {
+
+      const td = document.createElement('td');
+
+      if (index === 2) {
+
+        const span = document.createElement('span');
+
+        span.className = `status ${status}`;
+
+        span.textContent = formatStatusLabel(status);
+
+        td.appendChild(span);
+
+      } else {
+
+        td.textContent = value || '-';
+
+      }
+
+      tr.appendChild(td);
+
+    });
+
+    elements.jobsBody.appendChild(tr);
+
+  });
+
+}
+
+
+
+function normalizeStatus(status) {
+
+  if (!status) {
+
+    return 'pending';
+
+  }
+
+  return String(status).toLowerCase();
+
+}
+
+
+
+function formatStatusLabel(status) {
+
+  if (!status) {
+
+    return '';
+
+  }
+
+  return status.charAt(0).toUpperCase() + status.slice(1);
+
+}
+
+
+
+function renderHistory() {
+
+  if (!elements.historyList) {
+
+    return;
+
+  }
+
+  elements.historyList.innerHTML = '';
+
+  const execJobs = state.jobs.filter((job) => (job.job_type || '').toLowerCase() === 'exec');
+
+  if (!execJobs.length) {
+
+    elements.historyList.innerHTML = '<div class="feedback">No command history yet.</div>';
+
+    return;
+
+  }
+
+  execJobs
+
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+    .slice(0, 6)
+
+    .forEach((job) => {
+
+      const entry = document.createElement('div');
+
+      entry.className = 'history-entry';
+
+
+
+      const title = document.createElement('div');
+
+      title.textContent = describeJob(job);
+
+      entry.appendChild(title);
+
+
+
+      const meta = document.createElement('div');
+
+      meta.className = 'feedback';
+
+      const status = normalizeStatus(job.status);
+
+      const parts = [
+
+        `Job ${job.id}`,
+
+        formatStatusLabel(status),
+
+        formatRelativeTime(job.created_at)
+
+      ];
+
+      meta.textContent = parts.join(' | ');
+
+      entry.appendChild(meta);
+
+
+
+      if (job.error) {
+
+        const error = document.createElement('div');
+
+        error.className = 'feedback';
+
+        error.style.color = '#b91c1c';
+
+        error.textContent = job.error;
+
+        entry.appendChild(error);
+
+      }
+
+
+
+      elements.historyList.appendChild(entry);
+
+    });
+
+}
+
+
+
+function describeJob(job) {
+
+  const meta = job.metadata || {};
+
+  if (meta.command_template_name) {
+
+    return meta.command_template_name;
+
+  }
+
+  if (meta.command) {
+
+    if (Array.isArray(meta.command)) {
+
+      return meta.command.join(' ');
+
+    }
+
+    if (typeof meta.command === 'string') {
+
+      return meta.command;
+
+    }
+
+  }
+
+  if (job.job_type) {
+
+    return job.job_type;
+
+  }
+
+  return 'Command';
+
+}
+
+
+
+function renderLogs() {
+
+  if (!elements.logView) {
+
+    return;
+
+  }
+
+  elements.logView.innerHTML = '';
+
+  if (!state.logs.length) {
+
+    const div = document.createElement('div');
+
+    div.textContent = 'No log entries yet.';
+
+    elements.logView.appendChild(div);
+
+    return;
+
+  }
+
+  const sorted = state.logs
+
+    .slice()
+
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+
+
+  sorted.forEach((entry) => {
+
+    const line = document.createElement('div');
+
+    const time = formatTime(entry.timestamp);
+
+    const level = (entry.level || 'INFO').toUpperCase();
+
+    const jobPart = entry.job_id ? ` job=${entry.job_id}` : '';
+
+    line.textContent = `[${time}] ${level}${jobPart} - ${entry.message}`;
+
+    elements.logView.appendChild(line);
+
+  });
+
+  elements.logView.scrollTop = elements.logView.scrollHeight;
+
+}
+
+
+
+function formatTime(value) {
+
+  if (!value) {
+
+    return '';
+
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+
+    return String(value);
+
+  }
+
+  return date.toLocaleTimeString();
+
+}
+
+
+
+async function reloadLogs() {
+
+  const agent = state.selected;
+
+  if (!agent || !elements.logView) {
+
+    return;
+
+  }
+
+  elements.logView.innerHTML = '';
+
+  const loadingDiv = document.createElement('div');
+
+  loadingDiv.textContent = 'Loading logs...';
+
+  elements.logView.appendChild(loadingDiv);
+
+  try {
+
+    const logs = await fetchJSON(`/v1/agents/${agent.id}/logs?limit=200`);
+
+    state.logs = Array.isArray(logs) ? logs : [];
+
+    renderLogs();
+
+  } catch (error) {
+
+    elements.logView.innerHTML = '';
+
+    const div = document.createElement('div');
+
+    div.textContent = error.message || 'Failed to load logs.';
+
+    elements.logView.appendChild(div);
+
+  }
+
+}
+
+
+
+async function handleCommandSubmit(event) {
+
+  event.preventDefault();
+
+  if (!state.selected) {
+
+    setFeedback('Select an agent before sending a command.', true);
+
+    return;
+
+  }
+
+  const command = elements.commandText ? elements.commandText.value.trim() : '';
+
+  if (!command) {
+
+    setFeedback('Enter a command to run.', true);
+
+    return;
+
+  }
+
+  const timeout = elements.commandTimeout ? parseInt(elements.commandTimeout.value, 10) : 60;
+
+  const workingDir = elements.commandDir ? elements.commandDir.value.trim() : '';
+
+  const payload = {
+
+    command: command,
+
+    arguments: [],
+
+    environment: {},
+
+    timeout_seconds: Number.isFinite(timeout) && timeout > 0 ? timeout : 60,
+
+    working_dir: workingDir || null,
+
+    expect_response: false
+
+  };
+
+  setFeedback('Scheduling command...', false);
+
+  try {
+
+    const response = await fetchJSON(`/v1/agents/${state.selected.id}/interact`, {
+
+      method: 'POST',
+
+      headers: { 'Content-Type': 'application/json' },
+
+      body: JSON.stringify(payload)
+
+    });
+
+    const message = response && response.output ? response.output : 'Command scheduled successfully.';
+
+    setFeedback(message, false);
+
+    if (elements.commandForm) {
+
+      elements.commandForm.reset();
+
+      if (elements.commandTimeout) {
+
+        elements.commandTimeout.value = '60';
+
+      }
+
+    }
+
+    loadAgentDetails(state.selected, { quiet: true });
+
+  } catch (error) {
+
+    setFeedback(error.message || 'Failed to schedule command.', true);
+
+  }
+
+}
+
+
+
+function setFeedback(message, isError) {
+
+  if (!elements.commandFeedback) {
+
+    return;
+
+  }
+
+  elements.commandFeedback.textContent = message || '';
+
+  if (!message) {
+
+    elements.commandFeedback.style.color = '#6b7280';
+
+    return;
+
+  }
+
+  elements.commandFeedback.style.color = isError ? '#b91c1c' : '#047857';
+
+}
+
+
+
+function formatRelativeTime(value) {
+
+  if (!value) {
+
+    return 'never';
+
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+
+    return '-';
+
+  }
+
+  const diffSeconds = Math.round((Date.now() - date.getTime()) / 1000);
+
+  if (diffSeconds <= 5) {
+
+    return 'just now';
+
+  }
+
+  if (diffSeconds < 60) {
+
+    return `${diffSeconds}s ago`;
+
+  }
+
+  const diffMinutes = Math.round(diffSeconds / 60);
+
+  if (diffMinutes < 60) {
+
+    return `${diffMinutes}m ago`;
+
+  }
+
+  const diffHours = Math.round(diffMinutes / 60);
+
+  if (diffHours < 24) {
+
+    return `${diffHours}h ago`;
+
+  }
+
+  const diffDays = Math.round(diffHours / 24);
+
+  if (diffDays < 7) {
+
+    return `${diffDays}d ago`;
+
+  }
+
+  const diffWeeks = Math.round(diffDays / 7);
+
+  if (diffWeeks < 5) {
+
+    return `${diffWeeks}w ago`;
+
+  }
+
+  const diffMonths = Math.round(diffDays / 30);
+
+  if (diffMonths < 12) {
+
+    return `${diffMonths}mo ago`;
+
+  }
+
+  const diffYears = Math.round(diffDays / 365);
+
+  return `${diffYears}y ago`;
+
+}
+
+
+
+function formatDateTime(value) {
+
+  if (!value) {
+
+    return '-';
+
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+
+    return String(value);
+
+  }
+
+  return date.toLocaleString();
+
+}
+
+
+
+function formatDuration(seconds) {
+
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+
+    return '-';
+
+  }
+
+  const totalSeconds = Math.floor(seconds);
+
+  const hours = Math.floor(totalSeconds / 3600);
+
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  const secs = totalSeconds % 60;
+
+  const parts = [];
+
+  if (hours) {
+
+    parts.push(`${hours}h`);
+
+  }
+
+  if (minutes) {
+
+    parts.push(`${minutes}m`);
+
+  }
+
+  if (!parts.length || secs) {
+
+    parts.push(`${secs}s`);
+
+  }
+
+  return parts.join(' ');
+
+}
+
+
+
+async function fetchJSON(url, options = {}) {
+
+  const response = await fetch(url, options);
+
+  const raw = await response.text();
+
+  if (!response.ok) {
+
+    let message = `${response.status} ${response.statusText}`;
+
+    if (raw) {
+
+      try {
+
+        const data = JSON.parse(raw);
+
+        message = data.detail || data.message || raw;
+
+      } catch (error) {
+
+        message = raw;
+
+      }
+
+    }
+
+    throw new Error(message);
+
+  }
+
+  if (!raw) {
+
+    return null;
+
+  }
+
+  try {
+
+    return JSON.parse(raw);
+
+  } catch (error) {
+
+    return raw;
+
+  }
+
+}
+
+</script>
+
+</body>
+
+</html>
+

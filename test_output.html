@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang='en' data-theme='light'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+<title>DeployBot Control Center</title>
+<style>
+:root{--bg:#f4f6fb;--surface:#fff;--surface2:#edf1fb;--border:#d5d9e6;--text:#1f2434;--muted:#5b6272;--brand:#2563eb;--accent:#7c3aed;--shadow:0 12px 28px rgba(15,23,42,.08);} [data-theme='dark']{--bg:#0f172a;--surface:#16213b;--surface2:#1f2a42;--border:#283358;--text:#f8fafc;--muted:#96a3c3;--brand:#3b82f6;--accent:#8b5cf6;--shadow:0 18px 32px rgba(0,0,0,.45);} *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;} body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;} .shell{display:flex;width:100%;} aside{width:230px;background:linear-gradient(155deg,var(--brand)0%,var(--accent)100%);color:#fff;display:flex;flex-direction:column;gap:22px;padding:26px 20px;} aside .brand{font-weight:600;font-size:1.1rem;} aside nav{display:grid;gap:8px;} aside a{text-decoration:none;color:#eef2ff;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.08);transition:.2s;} aside a:hover{background:rgba(255,255,255,.16);transform:translateX(4px);} .toggle{margin-top:auto;display:flex;justify-content:space-between;align-items:center;font-size:.9rem;} .switch{position:relative;width:44px;height:22px;display:inline-block;} .switch input{opacity:0;width:0;height:0;} .switch span{position:absolute;inset:0;background:rgba(255,255,255,.4);border-radius:14px;transition:.2s;} .switch span:before{content:'';position:absolute;height:18px;width:18px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.2s;} .switch input:checked+span{background:rgba(0,0,0,.3);} .switch input:checked+span:before{transform:translateX(20px);} main{flex:1;padding:28px 38px;display:flex;flex-direction:column;gap:20px;} .top{display:flex;flex-direction:column;gap:14px;} .top h1{font-size:1.85rem;font-weight:600;} .tabs{display:flex;flex-wrap:wrap;gap:9px;} .tabs button{padding:7px 15px;border-radius:999px;border:1px solid transparent;background:var(--surface2);color:var(--muted);font-weight:600;cursor:pointer;} .tabs button.active{background:linear-gradient(120deg,var(--brand)0%,var(--accent)100%);color:#fff;box-shadow:0 6px 16px rgba(37,99,235,.25);} button.primary{background:linear-gradient(120deg,var(--brand)0%,var(--accent)100%);color:#fff;border:none;border-radius:10px;padding:9px 15px;cursor:pointer;box-shadow:0 8px 18px rgba(37,99,235,.2);} button.muted{border:none;border-radius:10px;padding:9px 15px;background:var(--surface2);color:var(--text);cursor:pointer;} button.outline{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:10px;padding:8px 14px;} section.panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:24px 26px;gap:18px;flex-direction:column;} section.panel.visible{display:flex;} .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:15px;} .stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;} .stat h3{font-size:.78rem;text-transform:uppercase;color:var(--muted);} .stat strong{font-size:1.5rem;} .small{font-size:.8rem;color:var(--muted);} .grid{display:grid;gap:14px;} .card{border:1px solid var(--border);border-radius:14px;padding:15px 17px;background:var(--surface);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;} label{font-size:.78rem;font-weight:600;color:var(--muted);} input,textarea,select{padding:9px 11px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);} textarea{resize:vertical;} .form-two{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));} .agent-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));} .agent-card{border-style:dashed;} .agent-card.drag-target{border-color:var(--brand);background:rgba(37,99,235,.1);} .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:.7rem;text-transform:uppercase;letter-spacing:.03em;background:var(--surface2);color:var(--muted);} .badge.green{background:rgba(16,185,129,.14);color:#047857;} .badge.blue{background:rgba(37,99,235,.14);color:#1d4ed8;} .badge.orange{background:rgba(245,158,11,.16);color:#b45309;} .badge.red{background:rgba(220,38,38,.16);color:#b91c1c;} .log-stream{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;font-family:'Fira Code',monospace;font-size:.82rem;max-height:330px;overflow:auto;} .toast{position:fixed;bottom:22px;right:22px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;box-shadow:var(--shadow);opacity:0;transform:translateY(12px);transition:opacity .2s ease,transform .2s ease;} .toast.show{opacity:1;transform:translateY(0);} .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:40;} .modal.active{display:flex;} .modal-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:22px 24px;width:min(520px,92vw);display:flex;flex-direction:column;gap:16px;} @media(max-width:900px){body{flex-direction:column;}aside{width:100%;flex-direction:row;align-items:center;justify-content:space-between;padding:20px;}aside nav{display:none;}main{padding:24px 18px;}}
+</style>
+</head>
+<body>
+<div class='shell'>
+  <aside>
+    <div class='brand'>DeployBot</div>
+    <nav>
+      <a href='#dashboard' data-tab-link='dashboard'>Dashboard</a>
+      <a href='#deployments' data-tab-link='deployments'>Deployments</a>
+      <a href='#agents' data-tab-link='agents'>Agents</a>
+      <a href='#commands' data-tab-link='commands'>Commands</a>
+      <a href='#activity' data-tab-link='activity'>Activity</a>
+      <a href='#ai' data-tab-link='ai'>AI Assistant</a>
+    </nav>
+    <div class='toggle'><span>Dark mode</span><label class='switch'><input id='themeToggle' type='checkbox'><span></span></label></div>
+  </aside>
+  <main>
+    <div class='top'>
+      <h1>DeployBot Control Center</h1>
+      <div class='flex wrap'>
+        <nav class='tabs'>
+          <button data-tab='dashboard' class='active'>Dashboard</button>
+          <button data-tab='deployments'>Deployments</button>
+          <button data-tab='agents'>Agents</button>
+          <button data-tab='commands'>Commands</button>
+          <button data-tab='activity'>Activity</button>
+          <button data-tab='ai'>AI Assistant</button>
+        </nav>
+        <button class='primary' id='refreshButton'>Refresh</button>
+      </div>
+    </div>
+    <section class='panel visible' data-panel='dashboard'>
+      <div class='stat-grid'>
+        <div class='stat'><h3>Agents</h3><strong id='statAgents'>0</strong><span class='small' id='statAgentsDetail'>No agents connected</span></div>
+        <div class='stat'><h3>Running Jobs</h3><strong id='statRunning'>0</strong><span class='small' id='statRunningDetail'>All quiet</span></div>
+        <div class='stat'><h3>Deployments</h3><strong id='statDeployments'>0</strong><span class='small'>Templates ready</span></div>
+        <div class='stat'><h3>Commands</h3><strong id='statCommands'>0</strong><span class='small'>Reusable automations</span></div>
+      </div>
+      <div class='grid' id='insightsPreview'></div>
+    </section>
+    <section class='panel' data-panel='deployments'>
+      <div class='flex wrap' style='justify-content:space-between;align-items:center;'>
+        <h2>Deployment templates</h2>
+        <div class='flex'><button class='muted' data-show='image'>Container image</button><button class='muted' data-show='repo'>Repository</button></div>
+      </div>
+      <form class='form-grid' id='imageForm'>
+        <label for='imageName'>Template name</label><input id='imageName' required>
+        <label for='imageRef'>Image reference</label><input id='imageRef' placeholder='registry/org/app:tag' required>
+        <div class='form-two'><div><label for='imagePolicy'>Restart policy</label><select id='imagePolicy'><option value=''>Default</option><option value='always'>Always</option><option value='unless-stopped'>Unless stopped</option><option value='on-failure'>On failure</option></select></div><div><label for='healthType'>Health check</label><select id='healthType'><option value=''>Disabled</option><option value='http'>HTTP</option><option value='tcp'>TCP</option><option value='command'>Command</option></select></div></div>
+        <label for='healthEndpoint'>Health endpoint / command</label><input id='healthEndpoint'>
+        <label for='healthStatus'>Expected status</label><input id='healthStatus' type='number' value='200'>
+        <label for='imageEnv'>Environment (KEY=VALUE)</label><textarea id='imageEnv' rows='3'></textarea>
+        <label for='imagePorts'>Ports (name:container:host:protocol)</label><textarea id='imagePorts' rows='3'></textarea>
+        <label for='imageVolumes'>Volumes (host:container[:ro])</label><textarea id='imageVolumes' rows='3'></textarea>
+        <button type='submit' class='primary'>Save image template</button>
+      </form>
+      <form class='form-grid' id='repoForm' style='display:none'>
+        <label for='repoName'>Template name</label><input id='repoName' required>
+        <label for='repoUrl'>Repository</label><input id='repoUrl' placeholder='github.com/org/repo' required>
+        <div class='form-two'><div><label for='repoRef'>Git reference</label><input id='repoRef' value='main'></div><div><label for='repoStrategy'>Strategy</label><select id='repoStrategy'><option value=''>Auto</option><option value='compose'>Compose</option><option value='dockerfile'>Dockerfile</option><option value='image'>Image</option></select></div></div>
+        <label for='repoEnv'>Environment (KEY=VALUE)</label><textarea id='repoEnv' rows='3'></textarea>
+        <label for='repoPorts'>Ports (name:container:host:protocol)</label><textarea id='repoPorts' rows='3'></textarea>
+        <label for='repoVolumes'>Volumes (host:container[:ro])</label><textarea id='repoVolumes' rows='3'></textarea>
+        <label for='composeFile'>Compose file</label><input id='composeFile' placeholder='docker-compose.yml'>
+        <label for='dockerfilePath'>Dockerfile path</label><input id='dockerfilePath' placeholder='Dockerfile'>
+        <label for='launchScript'>Custom launch script</label><textarea id='launchScript' rows='4' placeholder='# Optional'></textarea>
+        <label class='flex'><input type='checkbox' id='repoAiToggle' checked><span class='small'>Use AI when launch script missing</span></label>
+        <button type='submit' class='primary'>Save repository template</button>
+      </form>
+      <div><h3>Templates</h3><div id='deploymentList' class='grid'></div><div class='empty' id='deploymentEmpty' style='display:none'>No templates yet.</div></div>
+    </section>
+    <section class='panel' data-panel='agents'>
+      <div class='flex wrap' style='justify-content:space-between;align-items:center;'>
+        <h2>Connected agents</h2><span class='small'>Drag commands onto an agent to execute them</span>
+      </div>
+      <div id='agentGrid' class='agent-grid'></div>
+      <div>
+        <h3>Live notifications</h3>
+        <form class='form-two' id='logStreamForm'><div><label for='logHost'>Host filter</label><input id='logHost'></div><div><label for='logApp'>App filter</label><input id='logApp'></div><button type='submit' class='primary'>Connect stream</button><button type='button' class='outline' id='stopStream'>Stop</button></form>
+        <div class='log-stream' id='logStream'></div>
+      </div>
+    </section>
+    <section class='panel' data-panel='commands'>
+      <div class='flex' style='justify-content:space-between;align-items:center;'>
+        <h2>Command library</h2><button class='primary' id='addCommandBtn'>Add command</button>
+      </div>
+      <div id='commandList' class='grid'></div><div class='empty' id='commandEmpty' style='display:none'>No commands yet.</div>
+    </section>
+    <section class='panel' data-panel='activity'>
+      <div class='flex' style='justify-content:space-between;align-items:center;'>
+        <h2>Recent activity</h2><div class='flex'><button class='muted' data-filter='all'>All</button><button class='muted' data-filter='running'>Running</button><button class='muted' data-filter='failed'>Failed</button></div>
+      </div>
+      <div id='jobList' class='grid'></div><div class='empty' id='jobEmpty' style='display:none'>No jobs yet.</div>
+    </section>
+    <section class='panel' data-panel='ai'>
+      <div class='flex' style='justify-content:space-between;align-items:center;'>
+        <h2>AI assistant</h2><button class='muted' id='refreshAI'>Refresh</button>
+      </div>
+      <div class='grid'>
+        <div class='card'><strong>Status</strong><div id='aiStatus' class='small'>Loading…</div></div>
+        <div class='card'><strong>Insights</strong><div id='aiInsights' class='grid'></div><div class='empty' id='aiInsightsEmpty' style='display:none'>No insights yet.</div></div>
+        <div class='card'><strong>Chat</strong><div id='aiChatLog' class='log-stream' style='max-height:220px'></div><form class='form-grid' id='aiChatForm'><label for='aiMessage'>Ask DeployBot</label><textarea id='aiMessage' rows='3' required></textarea><button type='submit' class='primary'>Send</button></form></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class='modal' id='deployModal'><div class='modal-card'><div class='flex' style='justify-content:space-between;align-items:center;'><strong id='deployModalTitle'>Deploy</strong><button class='muted' data-close='deployModal'>Close</button></div><div class='form-grid'><label for='deployHost'>Target agent</label><select id='deployHost'></select><label for='deployRef'>Git reference override</label><input id='deployRef'><label for='deployEnvOverride'>Environment overrides (KEY=VALUE)</label><textarea id='deployEnvOverride' rows='3'></textarea></div><div class='flex' style='justify-content:flex-end;'><button class='muted' data-close='deployModal'>Cancel</button><button class='primary' id='confirmDeploy'>Deploy</button></div></div></div>
+<div class='modal' id='commandModal'><div class='modal-card'><div class='flex' style='justify-content:space-between;align-items:center;'><strong>Create command</strong><button class='muted' data-close='commandModal'>Close</button></div><form class='form-grid' id='commandForm'><label for='commandName'>Name</label><input id='commandName' required><div class='form-two'><div><label for='commandRuntime'>Runtime</label><select id='commandRuntime'><option value='shell'>Shell</option><option value='python'>Python</option><option value='powershell'>PowerShell</option></select></div><div><label for='commandTags'>Tags</label><input id='commandTags'></div></div><label for='commandText'>Command</label><textarea id='commandText' rows='4' required></textarea><div class='flex' style='justify-content:flex-end;'><button type='button' class='muted' data-close='commandModal'>Cancel</button><button type='submit' class='primary'>Save</button></div></form></div></div>
+<div class='modal' id='scriptModal'><div class='modal-card' style='width:min(720px,95vw);'><div class='flex' style='justify-content:space-between;align-items:center;'><strong>Launch script</strong><button class='muted' data-close='scriptModal'>Close</button></div><pre id='scriptContent'></pre></div></div>
+<div class='toast' id='toast'></div>

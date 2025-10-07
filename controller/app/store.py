@@ -22,6 +22,8 @@ from app.models import (
 	VolumeMapping,
 	EnvironmentVariable,
 	HealthCheckConfig,
+	HostMetrics,
+	AgentMetricSample,
 )
 
 
@@ -226,6 +228,23 @@ class Store:
 				failed_commands INTEGER DEFAULT 0,
 				last_command_at TEXT
 			)
+		""")
+
+		await db.execute("""
+			CREATE TABLE IF NOT EXISTS agent_metrics (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				agent_id TEXT NOT NULL,
+				recorded_at TEXT NOT NULL,
+				cpu_percent REAL,
+				mem_percent REAL,
+				disk_free_gb REAL,
+				raw TEXT
+			)
+		""")
+
+		await db.execute("""
+			CREATE INDEX IF NOT EXISTS idx_agent_metrics_agent
+			ON agent_metrics(agent_id, recorded_at)
 		""")
 
 		await db.execute("""
@@ -540,16 +559,31 @@ class Store:
 		"""Save or update an agent"""
 		async with aiosqlite.connect(self.db_path) as db:
 			await db.execute("""
-				INSERT OR REPLACE INTO agents 
-				(id, hostname, capabilities, status, registered_at, last_heartbeat)
-				VALUES (?, ?, ?, ?, ?, ?)
+				INSERT OR REPLACE INTO agents
+				(id, hostname, capabilities, status, registered_at, last_heartbeat,
+				os_info, hardware_info, network_info, docker_info, current_metrics,
+				uptime_seconds, agent_version, tags, total_commands, successful_commands,
+				failed_commands, last_command_at)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			""", (
 				agent.id,
 				agent.hostname,
-				json.dumps(agent.capabilities),
+				json.dumps(agent.capabilities or {}),
 				agent.status.value,
 				agent.registered_at.isoformat(),
-				agent.last_heartbeat.isoformat()
+				agent.last_heartbeat.isoformat(),
+				json.dumps(agent.os_info) if agent.os_info is not None else None,
+				json.dumps(agent.hardware_info) if agent.hardware_info is not None else None,
+				json.dumps(agent.network_info) if agent.network_info is not None else None,
+				json.dumps(agent.docker_info) if agent.docker_info is not None else None,
+				json.dumps(agent.current_metrics.model_dump()) if agent.current_metrics is not None else None,
+				agent.uptime_seconds,
+				agent.agent_version,
+				json.dumps(agent.tags or []),
+				agent.total_commands,
+				agent.successful_commands,
+				agent.failed_commands,
+				agent.last_command_at.isoformat() if agent.last_command_at else None
 			))
 			await db.commit()
     
@@ -587,15 +621,108 @@ class Store:
     
 	def _row_to_agent(self, row) -> Agent:
 		"""Convert database row to Agent model"""
+		def _loads(value):
+			return json.loads(value) if value else None
+
+		capabilities = json.loads(row["capabilities"]) if row["capabilities"] else {}
+		os_info = _loads(row["os_info"])
+		hardware_info = _loads(row["hardware_info"])
+		network_info = _loads(row["network_info"])
+		docker_info = _loads(row["docker_info"])
+		metrics_payload = _loads(row["current_metrics"])
+		current_metrics = HostMetrics(**metrics_payload) if metrics_payload else None
+		tags = _loads(row["tags"]) or []
+
 		return Agent(
 			id=row["id"],
 			hostname=row["hostname"],
-			capabilities=json.loads(row["capabilities"]),
+			capabilities=capabilities,
 			status=AgentStatus(row["status"]),
 			registered_at=datetime.fromisoformat(row["registered_at"]),
-			last_heartbeat=datetime.fromisoformat(row["last_heartbeat"])
+			last_heartbeat=datetime.fromisoformat(row["last_heartbeat"]),
+			os_info=os_info,
+			hardware_info=hardware_info,
+			network_info=network_info,
+			docker_info=docker_info,
+			current_metrics=current_metrics,
+			uptime_seconds=row["uptime_seconds"],
+			agent_version=row["agent_version"],
+			tags=tags,
+			total_commands=row["total_commands"] or 0,
+			successful_commands=row["successful_commands"] or 0,
+			failed_commands=row["failed_commands"] or 0,
+			last_command_at=datetime.fromisoformat(row["last_command_at"]) if row["last_command_at"] else None,
 		)
-    
+
+	async def record_agent_metrics(self, agent_id: str, metrics: Optional[HostMetrics]) -> None:
+		"""Persist a snapshot of agent metrics"""
+		if not metrics:
+			return
+
+		payload = metrics.model_dump() if hasattr(metrics, "model_dump") else metrics.dict()
+		async with aiosqlite.connect(self.db_path) as db:
+			await db.execute(
+				"""
+				INSERT INTO agent_metrics (agent_id, recorded_at, cpu_percent, mem_percent, disk_free_gb, raw)
+				VALUES (?, ?, ?, ?, ?, ?)
+				""",
+				(
+					agent_id,
+					datetime.utcnow().isoformat(),
+					payload.get("cpu_percent"),
+					payload.get("mem_percent"),
+					payload.get("disk_free_gb"),
+					json.dumps(payload),
+				),
+			)
+			await db.commit()
+
+	async def list_agent_metrics(self, agent_id: str, limit: int = 50) -> List[AgentMetricSample]:
+		"""Return recent metrics samples for an agent"""
+		async with aiosqlite.connect(self.db_path) as db:
+			db.row_factory = aiosqlite.Row
+			async with db.execute(
+				"""
+				SELECT recorded_at, raw
+				FROM agent_metrics
+				WHERE agent_id = ?
+				ORDER BY recorded_at DESC
+				LIMIT ?
+				""",
+				(agent_id, limit),
+			) as cursor:
+				rows = await cursor.fetchall()
+				samples: List[AgentMetricSample] = []
+				for row in rows:
+					payload = json.loads(row["raw"]) if row["raw"] else {}
+					metrics_obj = HostMetrics(**payload) if payload else HostMetrics()
+					samples.append(
+						AgentMetricSample(
+							recorded_at=datetime.fromisoformat(row["recorded_at"]),
+							metrics=metrics_obj,
+						)
+					)
+				return samples
+
+	async def update_agent_command_stats(self, agent_id: str, success: bool) -> None:
+		"""Increment command counters for an agent"""
+		now = datetime.utcnow().isoformat()
+		success_inc = 1 if success else 0
+		failure_inc = 0 if success else 1
+		async with aiosqlite.connect(self.db_path) as db:
+			await db.execute(
+				"""
+				UPDATE agents
+				SET total_commands = COALESCE(total_commands, 0) + 1,
+					successful_commands = COALESCE(successful_commands, 0) + ?,
+					failed_commands = COALESCE(failed_commands, 0) + ?,
+					last_command_at = ?
+				WHERE id = ?
+				""",
+				(success_inc, failure_inc, now, agent_id),
+			)
+			await db.commit()
+
 	# Job operations
 	async def save_job(self, job: Job) -> None:
 		"""Save or update a job"""

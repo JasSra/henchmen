@@ -75,6 +75,7 @@ async def lifespan(app: FastAPI):
     )
     
     # Initialize AI assistant if enabled and API key provided
+    global ai_assistant
     if settings.ai_enabled and settings.openai_api_key:
         ai_assistant = AIAssistant(
             api_key=settings.openai_api_key,
@@ -295,6 +296,20 @@ async def health_check():
 
 
 # AI Assistant endpoints
+@app.get("/v1/ai/status", tags=["AI Assistant"])
+async def ai_status():
+    """Check AI assistant status"""
+    global ai_assistant
+    return {
+        "ai_assistant": ai_assistant is not None,
+        "ai_assistant_type": str(type(ai_assistant)) if ai_assistant else None,
+        "settings": {
+            "ai_enabled": settings.ai_enabled,
+            "api_key_present": bool(settings.openai_api_key),
+            "api_key_length": len(settings.openai_api_key) if settings.openai_api_key else 0
+        }
+    }
+
 @app.post("/v1/ai/chat", response_model=AIChatResponse, tags=["AI Assistant"])
 async def ai_chat(request: AIChatRequest):
     """Chat with AI assistant for natural language commands"""
@@ -404,21 +419,6 @@ async def ai_insights():
         )
     
     return await ai_assistant.generate_insights()
-
-
-@app.get("/v1/ai/status", tags=["AI Assistant"])
-async def ai_status():
-    """Check AI assistant availability"""
-    return {
-        "enabled": ai_assistant is not None,
-        "model": settings.ai_model if ai_assistant else None,
-        "features": {
-            "chat": ai_assistant is not None,
-            "voice": ai_assistant is not None,
-            "insights": ai_assistant is not None,
-            "workflows": ai_assistant is not None
-        }
-    }
 
 
 # ==================== CHAT SESSION ENDPOINTS ====================

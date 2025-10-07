@@ -64,6 +64,13 @@ class WorkflowStep(BaseModel):
 	input_validation: Optional[str] = None  # Regex pattern or validation rule
 	input_placeholder: Optional[str] = None  # Placeholder text
 	user_input: Optional[str] = None  # Captured user input
+	
+	# UI Enhancement fields
+	icon: Optional[str] = None  # Emoji or icon for the step
+	category: Optional[str] = None  # Category for grouping steps
+	estimated_duration: Optional[int] = None  # Estimated time in seconds
+	help_text: Optional[str] = None  # Additional help text for users
+	dependencies: Optional[List[str]] = None  # IDs of steps this depends on
     
     
 
@@ -180,6 +187,49 @@ class AIAssistant:
 					"properties": {
 						"hours": {"type": "integer", "default": 24, "description": "Time window in hours"}
 					}
+				}
+			},
+			{
+				"name": "start_interactive_workflow",
+				"description": "Start an interactive workflow with guided steps and user inputs",
+				"parameters": {
+					"type": "object",
+					"properties": {
+						"workflow_name": {"type": "string", "description": "Name of the workflow to start"},
+						"context": {"type": "object", "description": "Initial context for the workflow"}
+					},
+					"required": ["workflow_name"]
+				}
+			},
+			{
+				"name": "get_workflow_definitions",
+				"description": "Get available workflow definitions with descriptions and requirements",
+				"parameters": {
+					"type": "object",
+					"properties": {}
+				}
+			},
+			{
+				"name": "provide_workflow_guidance",
+				"description": "Provide guided assistance for workflow completion",
+				"parameters": {
+					"type": "object",
+					"properties": {
+						"workflow_id": {"type": "string", "description": "ID of the workflow to guide"},
+						"user_query": {"type": "string", "description": "User's question or request for guidance"}
+					},
+					"required": ["workflow_id", "user_query"]
+				}
+			},
+			{
+				"name": "suggest_workflow",
+				"description": "Suggest the best workflow based on user intent",
+				"parameters": {
+					"type": "object",
+					"properties": {
+						"user_intent": {"type": "string", "description": "What the user wants to accomplish"}
+					},
+					"required": ["user_intent"]
 				}
 			},
 			{
@@ -311,6 +361,10 @@ class AIAssistant:
 			"get_workflow_status": self._get_workflow_status_action,
 			"list_workflows": self._list_workflows_action,
 			"list_workflow_definitions": self._list_workflow_definitions_action,
+			"start_interactive_workflow": self._start_interactive_workflow,
+			"get_workflow_definitions": self._get_workflow_definitions,
+			"provide_workflow_guidance": self._provide_workflow_guidance,
+			"suggest_workflow": self._suggest_workflow,
 		}
     
 	async def chat(self, request: AIChatRequest) -> AIChatResponse:
@@ -877,6 +931,236 @@ Remember: You're a helpful guide making complex DevOps tasks simple and approach
 			})
 
 		return {"workflows": definitions}
+
+	async def _start_interactive_workflow(self, workflow_name: str, context: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
+		"""Start an interactive workflow with guided prompts"""
+		try:
+			# Start the workflow
+			workflow_response = await self.start_workflow(workflow_name, context or {})
+			workflow = self.workflows[workflow_response.workflow_id]
+			
+			# Get current step info for interactive response
+			current_step = workflow.steps[workflow.current_step_index] if workflow.current_step_index < len(workflow.steps) else None
+			
+			response = {
+				"workflow_id": workflow_response.workflow_id,
+				"workflow_name": workflow_name,
+				"status": workflow.status,
+				"interactive": True,
+				"step_count": len(workflow.steps),
+				"current_step_index": workflow.current_step_index,
+				"message": f"Started interactive workflow: {workflow_name}"
+			}
+			
+			if current_step:
+				response.update({
+					"current_step": {
+						"id": current_step.id,
+						"title": current_step.title,
+						"description": current_step.description,
+						"icon": getattr(current_step, 'icon', '🔄'),
+						"category": getattr(current_step, 'category', 'general'),
+						"estimated_duration": getattr(current_step, 'estimated_duration', None),
+						"help_text": getattr(current_step, 'help_text', ''),
+						"requires_approval": current_step.requires_approval,
+						"requires_input": current_step.requires_input,
+						"input_type": current_step.input_type,
+						"input_choices": current_step.input_choices,
+						"input_label": current_step.input_label
+					}
+				})
+				
+				if current_step.requires_approval:
+					response["message"] = f"Step '{current_step.title}' requires your approval. {current_step.description}"
+				elif current_step.requires_input:
+					response["message"] = f"Step '{current_step.title}' needs input: {current_step.input_label or current_step.description}"
+				
+			return response
+			
+		except Exception as e:
+			return {"error": f"Failed to start interactive workflow: {str(e)}"}
+
+	async def _get_workflow_definitions(self, **kwargs) -> Dict[str, Any]:
+		"""Get detailed workflow definitions for interactive use"""
+		definitions = []
+		descriptions = {
+			"register_agent": "Safely onboard a new deployment agent",
+			"deploy_application": "Deploy an application with pre-flight checks",
+			"troubleshoot_failure": "Diagnose and remediate failed deployments",
+			"health_check": "Run a comprehensive system health check"
+		}
+		
+		for name, steps in self.workflow_definitions.items():
+			# Calculate estimated total duration
+			step_details = []
+			
+			for step in steps:
+				duration = getattr(step, 'estimated_duration', None)
+				step_details.append({
+					"id": step.id,
+					"title": step.title,
+					"description": step.description,
+					"icon": getattr(step, 'icon', '🔄'),
+					"category": getattr(step, 'category', 'general'),
+					"estimated_duration": duration,
+					"help_text": getattr(step, 'help_text', ''),
+					"requires_approval": step.requires_approval,
+					"requires_input": step.requires_input,
+					"input_type": step.input_type
+				})
+			
+			required_context = []
+			if name == "register_agent":
+				required_context = ["hostname"]
+			elif name == "deploy_application":
+				required_context = ["repository", "ref"]
+
+			definitions.append({
+				"id": name,
+				"name": name.replace('_', ' ').title(),
+				"description": descriptions.get(name, ""),
+				"steps": step_details,
+				"step_count": len(steps),
+				"required_context": required_context,
+				"estimated_duration": "10-30 min",
+				"difficulty": "beginner" if name in ["health_check"] else "intermediate",
+				"category": "deployment" if "deploy" in name else "maintenance"
+			})
+
+		return {"workflow_definitions": definitions}
+
+	async def _provide_workflow_guidance(self, workflow_id: str, step_index: Optional[int] = None, **kwargs) -> Dict[str, Any]:
+		"""Provide detailed guidance for current workflow step"""
+		try:
+			if workflow_id not in self.workflows:
+				return {"error": "Workflow not found"}
+			
+			workflow = self.workflows[workflow_id]
+			step_idx = step_index if step_index is not None else workflow.current_step_index
+			
+			if step_idx >= len(workflow.steps):
+				return {"error": "Step index out of range"}
+			
+			step = workflow.steps[step_idx]
+			
+			guidance = {
+				"workflow_id": workflow_id,
+				"workflow_name": workflow.name,
+				"step_index": step_idx,
+				"step": {
+					"id": step.id,
+					"title": step.title,
+					"description": step.description,
+					"icon": getattr(step, 'icon', '🔄'),
+					"category": getattr(step, 'category', 'general'),
+					"estimated_duration": getattr(step, 'estimated_duration', None),
+					"help_text": getattr(step, 'help_text', 'No additional help available'),
+					"requires_approval": step.requires_approval,
+					"requires_input": step.requires_input,
+					"input_type": step.input_type,
+					"input_choices": step.input_choices,
+					"input_label": step.input_label
+				},
+				"guidance": {
+					"what_happens": f"This step will {step.description.lower()}",
+					"why_needed": getattr(step, 'help_text', 'This step is part of the workflow process'),
+					"next_steps": [],
+					"tips": []
+				}
+			}
+			
+			# Add specific guidance based on step type
+			if step.requires_approval:
+				guidance["guidance"]["tips"].extend([
+					"Review the step description carefully",
+					"Click 'Approve' if you're ready to proceed",
+					"You can cancel the workflow if needed"
+				])
+			
+			if step.requires_input:
+				guidance["guidance"]["tips"].extend([
+					"Provide the requested information",
+					"Make sure the input is accurate",
+					"Use the suggestions if available"
+				])
+			
+			# Add next steps preview
+			if step_idx + 1 < len(workflow.steps):
+				next_step = workflow.steps[step_idx + 1]
+				guidance["guidance"]["next_steps"].append({
+					"id": next_step.id,
+					"title": next_step.title,
+					"description": next_step.description
+				})
+			
+			return guidance
+			
+		except Exception as e:
+			return {"error": f"Failed to provide guidance: {str(e)}"}
+
+	async def _suggest_workflow(self, user_intent: str, context: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
+		"""Suggest appropriate workflows based on user intent"""
+		try:
+			suggestions = []
+			intent_lower = user_intent.lower()
+			
+			# Analyze intent and suggest workflows
+			if any(word in intent_lower for word in ["agent", "server", "add", "register", "onboard"]):
+				suggestions.append({
+					"workflow_id": "register_agent",
+					"name": "Register Agent",
+					"description": "Safely onboard a new deployment agent",
+					"confidence": 0.9,
+					"reason": "Intent matches agent registration keywords",
+					"required_context": ["hostname"],
+					"estimated_duration": "10-15 min"
+				})
+			
+			if any(word in intent_lower for word in ["deploy", "deployment", "app", "application", "publish"]):
+				suggestions.append({
+					"workflow_id": "deploy_application",
+					"name": "Deploy Application",
+					"description": "Deploy an application with pre-flight checks",
+					"confidence": 0.85,
+					"reason": "Intent matches deployment keywords",
+					"required_context": ["repository", "ref"],
+					"estimated_duration": "15-30 min"
+				})
+			
+			if any(word in intent_lower for word in ["fail", "failure", "broken", "error", "problem", "issue", "troubleshoot"]):
+				suggestions.append({
+					"workflow_id": "troubleshoot_failure",
+					"name": "Troubleshoot Failure",
+					"description": "Diagnose and remediate failed deployments",
+					"confidence": 0.8,
+					"reason": "Intent matches troubleshooting keywords",
+					"required_context": [],
+					"estimated_duration": "10-20 min"
+				})
+			
+			if any(word in intent_lower for word in ["health", "check", "status", "system", "monitor"]):
+				suggestions.append({
+					"workflow_id": "health_check",
+					"name": "Health Check",
+					"description": "Run a comprehensive system health check",
+					"confidence": 0.75,
+					"reason": "Intent matches health monitoring keywords",
+					"required_context": [],
+					"estimated_duration": "5-10 min"
+				})
+			
+			# Sort by confidence
+			suggestions.sort(key=lambda x: x["confidence"], reverse=True)
+			
+			return {
+				"user_intent": user_intent,
+				"suggestions": suggestions[:3],  # Top 3 suggestions
+				"context_available": context or {},
+				"message": f"Found {len(suggestions)} workflow suggestions based on your request"
+			}
+			
+		except Exception as e:
+			return {"error": f"Failed to suggest workflows: {str(e)}"}
     
 	async def _generate_suggestions(self, user_message: str, ai_response: str, action_taken: Optional[str], data: Optional[Dict]) -> List[str]:
 		"""Generate contextual suggestions based on conversation"""

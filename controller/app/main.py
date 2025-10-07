@@ -58,6 +58,7 @@ from app.models import (
 	ToastNotification,
 	AgentInteractionRequest,
 	AgentInteractionResponse,
+	AgentMetricSample,
 )
 from app.store import Store
 from app.queue import JobQueue
@@ -513,12 +514,29 @@ app.mount("/static", StaticFiles(directory=str(ui_dir)), name="static")
 @app.get("/", response_class=HTMLResponse, tags=["UI"])
 async def serve_ui():
 	"""Serve the main UI dashboard (AI-enhanced if enabled)"""
+	print("DEBUG: serve_ui function called!")
 	# Serve AI-enhanced UI if AI is enabled (even without valid API key for UI structure)
 	# or if .env file exists indicating user wants AI features
 	env_file_exists = Path(".env").exists()
-	ui_file = ui_dir / ("index_ai.html" if (ai_assistant or env_file_exists) else "index.html")
-	with open(ui_file, "r") as f:
-		return HTMLResponse(content=f.read())
+	print(f"DEBUG: ai_assistant={ai_assistant}, env_file_exists={env_file_exists}")
+	print(f"DEBUG: ui_dir={ui_dir}")
+	preferred_files = []
+	if ai_assistant or env_file_exists:
+		preferred_files.extend(["index_ai_enhanced.html", "index_ai.html"])
+	preferred_files.append("index.html")
+
+	for candidate in preferred_files:
+		ui_file = ui_dir / candidate
+		print(f"DEBUG: attempting to serve {ui_file}")
+		if ui_file.exists():
+			try:
+				with open(ui_file, "r", encoding="utf-8") as f:
+					content = f.read()
+				return HTMLResponse(content=content, media_type="text/html")
+			except Exception as file_error:
+				print(f"Error serving UI file {ui_file}: {file_error}")
+
+	return HTMLResponse(content="<h1>Error loading UI</h1>", status_code=500)
 
 
 @app.get("/install.sh", response_class=Response, tags=["UI"])
@@ -684,32 +702,45 @@ async def register_agent(agent_data: AgentRegister) -> AgentRegisterResponse:
 	"""Register a new agent"""
 	# Check if agent already exists by hostname
 	existing_agent = await store.get_agent_by_hostname(agent_data.hostname)
-    
-	# Generate or reuse token (simple demo token since we don't yet enforce auth)
+
 	def generate_token() -> str:
 		return uuid.uuid4().hex
 
 	token = generate_token()
+	now = datetime.utcnow()
+	capabilities: Dict[str, Any] = agent_data.capabilities or {}
+	tags_value = capabilities.get("tags") if isinstance(capabilities, dict) else None
+	tags: List[str] = list(tags_value) if isinstance(tags_value, list) else []
+	docker_info = {"version": agent_data.docker_version} if agent_data.docker_version else None
 
 	if existing_agent:
-		# Update existing agent
-		existing_agent.last_heartbeat = datetime.utcnow()
+		existing_agent.last_heartbeat = now
 		existing_agent.status = AgentStatus.ONLINE
-		existing_agent.capabilities = agent_data.capabilities
+		existing_agent.capabilities = capabilities
+		existing_agent.docker_info = docker_info or existing_agent.docker_info
+		existing_agent.current_metrics = agent_data.metrics or existing_agent.current_metrics
+		if tags:
+			existing_agent.tags = tags
 		await store.save_agent(existing_agent)
+		if agent_data.metrics:
+			await store.record_agent_metrics(existing_agent.id, agent_data.metrics)
 		return AgentRegisterResponse(agent_id=existing_agent.id, agent_token=token)
-    
-	# Create new agent
+
 	agent = Agent(
 		id=str(uuid.uuid4()),
 		hostname=agent_data.hostname,
-		capabilities=agent_data.capabilities,
+		capabilities=capabilities,
 		status=AgentStatus.ONLINE,
-		registered_at=datetime.utcnow(),
-		last_heartbeat=datetime.utcnow()
+		registered_at=now,
+		last_heartbeat=now,
+		docker_info=docker_info,
+		current_metrics=agent_data.metrics,
+		tags=tags,
 	)
-    
+
 	await store.save_agent(agent)
+	if agent_data.metrics:
+		await store.record_agent_metrics(agent.id, agent_data.metrics)
 	return AgentRegisterResponse(agent_id=agent.id, agent_token=token)
 
 
@@ -720,10 +751,25 @@ async def agent_heartbeat(agent_id: str, heartbeat: HeartbeatRequest) -> Heartbe
 	agent = await store.get_agent(agent_id)
 	if not agent:
 		raise HTTPException(status_code=404, detail="Agent not found")
-    
-	# Update agent heartbeat
-	agent.last_heartbeat = datetime.utcnow()
+
+	# Update agent heartbeat and latest telemetry
+	now = datetime.utcnow()
+	agent.last_heartbeat = now
 	agent.status = heartbeat.status
+
+	if heartbeat.capabilities:
+		agent.capabilities = heartbeat.capabilities
+		tags_candidate = heartbeat.capabilities.get("tags") if isinstance(heartbeat.capabilities, dict) else None
+		if isinstance(tags_candidate, list):
+			agent.tags = tags_candidate
+		docker_info = heartbeat.capabilities.get("docker_info") if isinstance(heartbeat.capabilities, dict) else None
+		if docker_info:
+			agent.docker_info = docker_info
+
+	if heartbeat.metrics:
+		agent.current_metrics = heartbeat.metrics
+		await store.record_agent_metrics(agent_id, heartbeat.metrics)
+
 	await store.save_agent(agent)
     
 	# Check for pending jobs for this agent's hostname
@@ -805,6 +851,9 @@ async def ack_job(agent_id: str, job_id: str, payload: JobAckRequest):
 		job.completed_at = datetime.utcnow()
 		job.error = str(payload.detail) if payload.detail is not None else ""
 	await store.save_job(job)
+
+	if job.job_type and job.job_type.lower() == "exec":
+		await store.update_agent_command_stats(agent_id, payload.status.lower() == "succeeded")
 	return {"ok": True}
 
 
@@ -822,6 +871,51 @@ async def receive_logs(agent_id: str, job_id: str, request: Request):
 	await store.save_log(LogEntry(job_id=job_id, host=agent_id, app="agent", level="INFO", message=text))
 	return {"received": True}
 
+
+@app.get("/v1/agents", response_model=List[Agent], tags=["Agents"])
+async def list_agents_endpoint() -> List[Agent]:
+	"""List all registered agents"""
+	agents = await store.list_agents()
+	return agents
+
+
+@app.get("/v1/agents/{agent_id}", response_model=Agent, tags=["Agents"])
+async def get_agent_endpoint(agent_id: str) -> Agent:
+	"""Get a single agent by ID"""
+	agent = await store.get_agent(agent_id)
+	if not agent:
+		raise HTTPException(status_code=404, detail="Agent not found")
+	return agent
+
+
+@app.get("/v1/agents/{agent_id}/jobs", response_model=List[Job], tags=["Agents"])
+async def list_agent_jobs(agent_id: str, limit: int = 50) -> List[Job]:
+	"""List most recent jobs associated with an agent"""
+	agent = await store.get_agent(agent_id)
+	if not agent:
+		raise HTTPException(status_code=404, detail="Agent not found")
+	jobs = await job_queue.list_jobs()
+	filtered = [job for job in jobs if job.assigned_agent == agent_id or job.host == agent.hostname]
+	return filtered[:limit]
+
+
+@app.get("/v1/agents/{agent_id}/logs", response_model=List[LogEntry], tags=["Agents"])
+async def list_agent_logs(agent_id: str, limit: int = 200) -> List[LogEntry]:
+	"""Fetch recent logs streamed by an agent"""
+	agent = await store.get_agent(agent_id)
+	if not agent:
+		raise HTTPException(status_code=404, detail="Agent not found")
+	logs = await store.get_logs(host=agent_id, limit=limit)
+	return logs
+
+
+@app.get("/v1/agents/{agent_id}/metrics", response_model=List[AgentMetricSample], tags=["Agents"])
+async def list_agent_metrics_endpoint(agent_id: str, limit: int = 50) -> List[AgentMetricSample]:
+	"""Return recent host metrics for an agent"""
+	agent = await store.get_agent(agent_id)
+	if not agent:
+		raise HTTPException(status_code=404, detail="Agent not found")
+	return await store.list_agent_metrics(agent_id, limit)
 
 # Job endpoints
 @app.post("/v1/jobs", response_model=JobResponse, tags=["Jobs"], status_code=201)
@@ -1102,32 +1196,34 @@ async def interact_with_agent(agent_id: str, request: AgentInteractionRequest) -
 	
 	if agent.status != AgentStatus.ONLINE:
 		raise HTTPException(status_code=400, detail="Agent is not online")
-	
+
 	# Create a job for the interaction
+	if request.arguments:
+		command_payload: Any = [request.command] + request.arguments
+	else:
+		command_payload = request.command
+
 	job_request = JobCreate(
 		host=agent.hostname,
 		job_type="exec",
 		repo=None,
 		ref=None,
 		metadata={
-			"command": request.command,
+			"command": command_payload,
 			"working_dir": request.working_dir,
 			"environment": request.environment or {},
-			"timeout": request.timeout or 30
+			"timeout_seconds": request.timeout_seconds,
 		}
 	)
-	
+
 	job = await job_queue.enqueue(job_request)
-	
-	# For now, return the job reference - in a full implementation,
-	# we'd wait for completion or use WebSockets for real-time response
+
 	return AgentInteractionResponse(
-		request_id=request.request_id,
-		job_id=job.id,
-		status="submitted",
-		output="",
-		error="",
-		exit_code=None
+		success=True,
+		output=f"Command scheduled as job {job.id}",
+		error=None,
+		exit_code=None,
+		execution_time_seconds=None,
 	)
 
 
@@ -1598,6 +1694,84 @@ async def cancel_workflow(workflow_id: str):
 	return {"status": "cancelled", "workflow_id": workflow_id}
 
 
+@app.post("/v1/ai/workflows/interactive/start", tags=["AI Workflows"])
+async def start_interactive_workflow(request: dict):
+	"""Start an interactive workflow with guided prompts"""
+	if not ai_assistant:
+		raise HTTPException(
+			status_code=503,
+			detail="AI assistant not available"
+		)
+    
+	workflow_name = request.get("workflow_name")
+	context = request.get("context", {})
+	
+	if not workflow_name:
+		raise HTTPException(status_code=400, detail="workflow_name is required")
+	
+	try:
+		result = await ai_assistant._start_interactive_workflow(workflow_name, context)
+		return result
+	except Exception as e:
+		raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/v1/ai/workflows/definitions", tags=["AI Workflows"])
+async def get_workflow_definitions():
+	"""Get detailed workflow definitions for interactive use"""
+	if not ai_assistant:
+		raise HTTPException(
+			status_code=503,
+			detail="AI assistant not available"
+		)
+    
+	try:
+		result = await ai_assistant._get_workflow_definitions()
+		return result
+	except Exception as e:
+		raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/v1/ai/workflows/{workflow_id}/guidance", tags=["AI Workflows"])
+async def provide_workflow_guidance(workflow_id: str, request: dict):
+	"""Provide detailed guidance for current workflow step"""
+	if not ai_assistant:
+		raise HTTPException(
+			status_code=503,
+			detail="AI assistant not available"
+		)
+    
+	step_index = request.get("step_index")
+	
+	try:
+		result = await ai_assistant._provide_workflow_guidance(workflow_id, step_index)
+		return result
+	except Exception as e:
+		raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/v1/ai/workflows/suggest", tags=["AI Workflows"])
+async def suggest_workflow(request: dict):
+	"""Suggest appropriate workflows based on user intent"""
+	if not ai_assistant:
+		raise HTTPException(
+			status_code=503,
+			detail="AI assistant not available"
+		)
+    
+	user_intent = request.get("user_intent")
+	context = request.get("context", {})
+	
+	if not user_intent:
+		raise HTTPException(status_code=400, detail="user_intent is required")
+	
+	try:
+		result = await ai_assistant._suggest_workflow(user_intent, context)
+		return result
+	except Exception as e:
+		raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
 	import uvicorn
 	uvicorn.run(
@@ -1612,4 +1786,5 @@ if __name__ == "__main__":
 @app.get("/simple-test")
 async def simple_test():
 	return {"test": "working"}
+
 

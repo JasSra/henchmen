@@ -242,7 +242,7 @@ Controller → SSH Connect → Execute Commands → Deploy → Disconnect
    - Parse job specifications
    - Execute deployments
    - Docker operations
-   - Log streaming (future)
+   - Job completion reporting
 
 3. **Configuration**
    - Environment variables

@@ -203,6 +203,49 @@ async def list_jobs() -> list[Job]:
     return jobs
 
 
+@app.put("/v1/jobs/{job_id}/status", tags=["Jobs"])
+async def update_job_status(job_id: str, status_update: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Update job status (called by agents when job completes)
+    
+    Body should contain:
+    - status: "success" or "failed"
+    - error: optional error message if failed
+    """
+    status = status_update.get("status", "unknown")
+    error = status_update.get("error")
+    
+    # Map status to JobStatus enum
+    job_status_map = {
+        "success": JobStatus.SUCCESS,
+        "failed": JobStatus.FAILED,
+        "running": JobStatus.RUNNING,
+        "pending": JobStatus.PENDING
+    }
+    
+    new_status = job_status_map.get(status, JobStatus.FAILED)
+    
+    # Update job in store
+    job = await store.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    job.status = new_status
+    if error:
+        job.error = error
+    job.completed_at = datetime.utcnow()
+    
+    await store.update_job(job)
+    
+    logger.info(f"Job {job_id} status updated to {status}")
+    
+    return {
+        "job_id": job_id,
+        "status": status,
+        "updated": True
+    }
+
+
 # Host endpoints
 @app.get("/v1/hosts", response_model=HostsResponse, tags=["Hosts"])
 async def list_hosts() -> HostsResponse:

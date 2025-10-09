@@ -20,12 +20,14 @@ from app.models import (
     Job, JobCreate, JobResponse, JobStatus,
     HostInfo, HostsResponse,
     GitHubPushEvent, WebhookResponse,
-    LogEntry
+    LogEntry, SSHDeploymentRequest, SSHDeploymentResponse,
+    SSHDeploymentMode, HostConfigurationModel
 )
 from app.store import Store
 from app.queue import JobQueue
 from app.webhooks import WebhookHandler
 from app.ai_assistant import AIAssistant, AIChatRequest, AIChatResponse, AIInsight, AIMessage
+from app.ssh_connector import SSHConnector, SSHCredentials, SSHConnectionPool
 
 logger = logging.getLogger(__name__)
 
@@ -200,6 +202,49 @@ async def list_jobs() -> list[Job]:
     """List all jobs"""
     jobs = await job_queue.list_jobs()
     return jobs
+
+
+@app.put("/v1/jobs/{job_id}/status", tags=["Jobs"])
+async def update_job_status(job_id: str, status_update: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Update job status (called by agents when job completes)
+    
+    Body should contain:
+    - status: "success" or "failed"
+    - error: optional error message if failed
+    """
+    status = status_update.get("status", "unknown")
+    error = status_update.get("error")
+    
+    # Map status to JobStatus enum
+    job_status_map = {
+        "success": JobStatus.SUCCESS,
+        "failed": JobStatus.FAILED,
+        "running": JobStatus.RUNNING,
+        "pending": JobStatus.PENDING
+    }
+    
+    new_status = job_status_map.get(status, JobStatus.FAILED)
+    
+    # Update job in store
+    job = await store.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    job.status = new_status
+    if error:
+        job.error = error
+    job.completed_at = datetime.utcnow()
+    
+    await store.update_job(job)
+    
+    logger.info(f"Job {job_id} status updated to {status}")
+    
+    return {
+        "job_id": job_id,
+        "status": status,
+        "updated": True
+    }
 
 
 # Host endpoints
@@ -629,6 +674,141 @@ async def cancel_workflow(workflow_id: str):
         raise HTTPException(status_code=404, detail="Workflow not found")
     
     return {"status": "cancelled", "workflow_id": workflow_id}
+
+
+# SSH Deployment Endpoints
+@app.post("/v1/deploy/ssh", response_model=SSHDeploymentResponse, tags=["SSH Deployment"])
+async def deploy_via_ssh(request: SSHDeploymentRequest) -> SSHDeploymentResponse:
+    """
+    Deploy an application using SSH (agentless deployment)
+    
+    This endpoint allows deploying applications without requiring a persistent agent
+    on the target server. The controller connects via SSH to execute deployments.
+    """
+    try:
+        logger.info(f"Starting SSH deployment to {request.credentials.hostname}")
+        
+        # Create SSH credentials
+        credentials = SSHCredentials(
+            hostname=request.credentials.hostname,
+            port=request.credentials.port,
+            username=request.credentials.username,
+            password=request.credentials.password,
+            private_key=request.credentials.private_key,
+            private_key_passphrase=request.credentials.private_key_passphrase
+        )
+        
+        # Create connector
+        connector = SSHConnector(credentials)
+        
+        # Connect
+        if not await connector.connect():
+            return SSHDeploymentResponse(
+                success=False,
+                message="Failed to connect via SSH",
+                error="SSH connection failed"
+            )
+        
+        try:
+            # Execute deployment
+            result = await connector.execute_deployment(
+                repo_url=request.repo_url,
+                ref=request.ref,
+                container_name=request.container_name
+            )
+            
+            return SSHDeploymentResponse(
+                success=result.success,
+                message="Deployment completed" if result.success else "Deployment failed",
+                output=result.output,
+                error=result.error
+            )
+        
+        finally:
+            await connector.disconnect()
+    
+    except Exception as e:
+        logger.error(f"SSH deployment error: {e}")
+        return SSHDeploymentResponse(
+            success=False,
+            message="Deployment failed",
+            error=str(e)
+        )
+
+
+@app.post("/v1/ssh/execute", tags=["SSH Deployment"])
+async def execute_ssh_command(
+    hostname: str,
+    command: str,
+    credentials: SSHDeploymentRequest
+) -> Dict[str, Any]:
+    """
+    Execute a command on a remote host via SSH
+    
+    Useful for debugging and testing SSH connectivity
+    """
+    try:
+        ssh_creds = SSHCredentials(
+            hostname=credentials.credentials.hostname,
+            port=credentials.credentials.port,
+            username=credentials.credentials.username,
+            password=credentials.credentials.password,
+            private_key=credentials.credentials.private_key,
+            private_key_passphrase=credentials.credentials.private_key_passphrase
+        )
+        
+        connector = SSHConnector(ssh_creds)
+        
+        if not await connector.connect():
+            raise HTTPException(status_code=500, detail="SSH connection failed")
+        
+        try:
+            result = await connector.execute_command(command)
+            
+            return {
+                "success": result.success,
+                "output": result.output,
+                "error": result.error,
+                "exit_code": result.exit_code
+            }
+        finally:
+            await connector.disconnect()
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/v1/ssh/metrics/{hostname}", tags=["SSH Deployment"])
+async def get_ssh_host_metrics(
+    hostname: str,
+    credentials: SSHDeploymentRequest
+) -> Dict[str, Any]:
+    """
+    Get system metrics from a remote host via SSH
+    """
+    try:
+        ssh_creds = SSHCredentials(
+            hostname=credentials.credentials.hostname,
+            port=credentials.credentials.port,
+            username=credentials.credentials.username,
+            password=credentials.credentials.password,
+            private_key=credentials.credentials.private_key,
+            private_key_passphrase=credentials.credentials.private_key_passphrase
+        )
+        
+        connector = SSHConnector(ssh_creds)
+        
+        if not await connector.connect():
+            raise HTTPException(status_code=500, detail="SSH connection failed")
+        
+        try:
+            metrics = await connector.get_system_metrics()
+            return metrics
+        finally:
+            await connector.disconnect()
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

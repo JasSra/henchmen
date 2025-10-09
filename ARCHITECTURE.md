@@ -1,6 +1,6 @@
 # DeployBot Controller - Architecture
 
-## System Architecture
+## System Architecture (Updated for .NET Agent + SSH Support)
 
 ```
 ┌──────────────┐
@@ -10,53 +10,78 @@
        │ Push Event
        │ (webhook)
        ▼
-┌─────────────────────────────────────────────┐
-│         DeployBot Controller                │
-│                                             │
-│  ┌──────────────┐      ┌─────────────┐    │
-│  │   Webhook    │      │    Queue    │    │
-│  │   Handler    │─────▶│   Manager   │    │
-│  └──────────────┘      └──────┬──────┘    │
-│         │                      │           │
-│         │ Verify HMAC         │           │
-│         │ Map repo→hosts      │           │
-│         ▼                      ▼           │
-│  ┌──────────────┐      ┌─────────────┐    │
-│  │ apps.yaml    │      │  Job Queue  │    │
-│  │ Config       │      │  (in-memory)│    │
-│  └──────────────┘      └──────┬──────┘    │
-│                               │           │
-│                               │ Persist   │
-│                               ▼           │
-│                        ┌─────────────┐    │
-│                        │   SQLite    │    │
-│                        │  Database   │    │
-│                        └─────────────┘    │
-│                                           │
-│  ┌──────────────────────────────────┐    │
-│  │        FastAPI Endpoints         │    │
-│  │  • /v1/agents/register           │    │
-│  │  • /v1/agents/{id}/heartbeat     │    │
-│  │  • /v1/jobs                      │    │
-│  │  • /v1/hosts                     │    │
-│  │  • /v1/webhooks/github           │    │
-│  │  • /v1/logs/stream              │    │
-│  └──────────────────────────────────┘    │
-└────────────────┬────────────────┬─────────┘
-                 │                │
-        Heartbeat│                │CLI
-        (Polling)│                │
-                 ▼                ▼
-        ┌─────────────┐  ┌──────────────┐
-        │   Agent 1   │  │  CLI Tool    │
-        │  (host-01)  │  │   (ctl.py)   │
-        └─────────────┘  └──────────────┘
-                 │
-        ┌─────────────┐
-        │   Agent 2   │
-        │  (host-02)  │
-        └─────────────┘
+┌─────────────────────────────────────────────────────┐
+│         DeployBot Controller                        │
+│                                                     │
+│  ┌──────────────┐      ┌─────────────┐            │
+│  │   Webhook    │      │    Queue    │            │
+│  │   Handler    │─────▶│   Manager   │            │
+│  └──────────────┘      └──────┬──────┘            │
+│         │                      │                   │
+│         │ Verify HMAC         │                   │
+│         │ Map repo→hosts      │                   │
+│         ▼                      ▼                   │
+│  ┌──────────────┐      ┌─────────────┐            │
+│  │ apps.yaml    │      │  Job Queue  │            │
+│  │ Config       │      │  (in-memory)│            │
+│  └──────────────┘      └──────┬──────┘            │
+│                               │                   │
+│                               │ Persist           │
+│                               ▼                   │
+│                        ┌─────────────┐            │
+│                        │   SQLite    │            │
+│                        │  Database   │            │
+│                        └─────────────┘            │
+│                                                   │
+│  ┌────────────────────────────────────────────┐  │
+│  │        FastAPI Endpoints                   │  │
+│  │  • /v1/agents/register                     │  │
+│  │  • /v1/agents/{id}/heartbeat               │  │
+│  │  • /v1/jobs                                │  │
+│  │  • /v1/hosts                               │  │
+│  │  • /v1/webhooks/github                     │  │
+│  │  • /v1/logs/stream                        │  │
+│  │  • /v1/deploy/ssh (NEW)                    │  │
+│  │  • /v1/ssh/execute (NEW)                   │  │
+│  │  • /v1/ssh/metrics/{hostname} (NEW)        │  │
+│  └────────────────────────────────────────────┘  │
+│                                                   │
+│  ┌────────────────────────────────────────────┐  │
+│  │     SSH Connection Pool (NEW)              │  │
+│  │  • Manages agentless deployments           │  │
+│  │  • Executes commands over SSH              │  │
+│  └────────────────────────────────────────────┘  │
+└────────┬────────────────┬───────────────┬─────────┘
+         │                │               │
+  Agent  │         CLI    │        SSH    │
+  Mode   │                │        Mode   │
+         ▼                ▼               ▼
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│ .NET Agent 1 │  │  CLI Tool    │  │ SSH Target   │
+│  (host-01)   │  │   (ctl.py)   │  │  (host-03)   │
+│ • Heartbeat  │  └──────────────┘  │ • No agent   │
+│ • Docker ops │                    │ • SSH access │
+└──────────────┘                    └──────────────┘
+         │
+┌──────────────┐
+│ .NET Agent 2 │
+│  (host-02)   │
+└──────────────┘
 ```
+
+## Deployment Modes
+
+### 1. Agent-Based Mode (Traditional)
+- Persistent .NET agent runs on target server
+- Agent polls controller for jobs via heartbeat
+- Direct access to local Docker daemon
+- Best for: Frequent deployments, low-latency requirements
+
+### 2. Agentless SSH Mode (NEW)
+- Controller connects to target via SSH
+- No persistent agent required
+- Commands executed remotely
+- Best for: Ad-hoc deployments, minimal infrastructure
 
 ## Data Flow
 

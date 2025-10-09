@@ -204,6 +204,25 @@ class Store:
                     return self._row_to_job(row)
                 return None
     
+    async def update_job(self, job: Job):
+        """Update an existing job"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                """UPDATE jobs SET 
+                   status = ?, started_at = ?, completed_at = ?, 
+                   assigned_agent = ?, error = ?
+                   WHERE id = ?""",
+                (
+                    job.status.value,
+                    job.started_at.isoformat() if job.started_at else None,
+                    job.completed_at.isoformat() if job.completed_at else None,
+                    job.assigned_agent,
+                    job.error,
+                    job.id
+                )
+            )
+            await db.commit()
+    
     async def list_jobs(self, status: Optional[JobStatus] = None) -> List[Job]:
         """List jobs, optionally filtered by status"""
         async with aiosqlite.connect(self.db_path) as db:

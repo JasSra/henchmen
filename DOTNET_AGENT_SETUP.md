@@ -66,15 +66,68 @@ dotnet build -c Release
 Set environment variables (or create a `.env` file):
 
 ```bash
-# Controller URL
+# Required: Controller URL
 export CONTROLLER_URL=http://localhost:8080
 
-# Agent hostname (defaults to machine hostname)
+# Optional: Agent hostname (defaults to machine hostname)
 export AGENT_HOSTNAME=my-server-01
 
-# Heartbeat interval in seconds (default: 5)
+# Optional: Heartbeat interval in seconds (default: 5)
 export HEARTBEAT_INTERVAL=5
+
+# Optional: Working directory (default: /tmp/deploybot-agent)
+export AGENT_WORK_DIR=/opt/deploybot/work
+
+# Optional: Data directory for state persistence (default: /tmp/deploybot-agent/data)
+export AGENT_DATA_DIR=/opt/deploybot/data
+
+# Security Configuration
+
+# Optional: Agent authentication token
+export AGENT_TOKEN=your-secure-token-here
+
+# Optional: Allow insecure HTTPS (skip certificate validation - NOT for production!)
+export ALLOW_INSECURE=false
+
+# Optional: Client certificate for mutual TLS authentication
+export CLIENT_CERT_FILE=/path/to/client-cert.pem
+export CLIENT_KEY_FILE=/path/to/client-key.pem
+
+# Optional: CA certificate for validating controller certificate
+export CA_CERT_FILE=/path/to/ca-cert.pem
 ```
+
+### Security Features
+
+The .NET agent supports multiple security mechanisms:
+
+1. **Token-based Authentication**
+   - Set `AGENT_TOKEN` environment variable
+   - Token is sent as Bearer token in Authorization header
+   - Persisted in agent state for reconnection
+
+2. **TLS/HTTPS Support**
+   - Validates server certificates by default
+   - Can use custom CA certificates via `CA_CERT_FILE`
+   - `ALLOW_INSECURE=true` disables validation (development only)
+
+3. **Mutual TLS (Client Certificates)**
+   - Configure `CLIENT_CERT_FILE` and `CLIENT_KEY_FILE`
+   - Agent presents certificate to controller
+   - Supports PEM-formatted certificates
+
+4. **State Persistence**
+   - Agent ID and token saved to `$AGENT_DATA_DIR/agent-state.json`
+   - Survives restarts without re-registration
+   - JSON format for easy inspection
+
+5. **Health Metrics**
+   - CPU usage reported in heartbeats
+   - Memory consumption tracked
+   - Disk space availability
+   - Docker container inventory
+   - Sent with every heartbeat for monitoring
+
 
 ### Running the Agent
 

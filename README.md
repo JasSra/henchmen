@@ -16,7 +16,7 @@ A lightweight deployment orchestration controller that manages deployment jobs a
 - 🚀 **One-Line Agent Install** - Auto-detects OS, installs dependencies, sets up service
 - 🔒 **Hardened Agent Runtime** - HTTPS + cert pinning, encrypted state, policy enforcement, audit trail
 - 🛠️ **Interactive First-Run Helper** - Guides operators through creating service accounts, Docker access, and TLS scaffolding
-- 🆕 **.NET Agent** - Modern C# agent with same functionality as Go agent
+- 🆕 **.NET Agent** - Modern C# agent with token auth, TLS/mTLS, health metrics, state persistence
 - 🆕 **Agentless SSH** - Deploy without installing agents using SSH connectivity
 
 ## 🚀 Quick Start

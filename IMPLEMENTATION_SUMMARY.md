@@ -234,21 +234,42 @@ Controller → SSH Connect → Execute Commands → Deploy → Disconnect
 
 1. **Controller Communication**
    - Register with controller
-   - Send heartbeat
+   - Send heartbeat with health metrics
    - Receive jobs
    - Report status
+   - Token-based authentication
+   - TLS/mTLS support
 
 2. **Job Execution**
    - Parse job specifications
    - Execute deployments
    - Docker operations
    - Job completion reporting
+   - Git repository cloning
+   - Docker image building
 
-3. **Configuration**
+3. **Security Features**
+   - Token-based authentication (Bearer tokens)
+   - TLS certificate validation
+   - Mutual TLS (client certificates)
+   - Insecure mode for development
+   - State persistence with encryption-ready design
+
+4. **Health Monitoring**
+   - CPU usage metrics
+   - Memory consumption
+   - Disk space availability
+   - Docker container inventory
+   - Metrics sent in every heartbeat
+
+5. **Configuration**
    - Environment variables
    - Controller URL
    - Hostname override
    - Heartbeat interval
+   - Security settings (tokens, certificates)
+   - Working directories
+   - State persistence directory
 
 ## Migration Path
 
